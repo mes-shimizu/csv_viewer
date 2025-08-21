@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Viewer and Editor</title>
+    <title>Container Delivery Scheduler</title>
     <!-- Tailwind CSSをCDN経由で読み込み -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google FontsからInterフォントを読み込み -->
@@ -11,204 +11,425 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* 日本語フォントと英語フォントの指定 */
-        body {
-            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+        #csvFileInput { display: none; }
+        [contenteditable="true"]:focus { outline-color: #3b82f6; background-color: #eff6ff; }
+        
+        /* スケジュールビューのスタイル */
+        .schedule-grid {
+            display: grid;
+            /* 1列目(ドライバー名) + 24時間分の列 */
+            grid-template-columns: 120px repeat(24, 1fr);
+            overflow-x: auto;
         }
-        /* ファイル入力フィールドを非表示にする */
-        #csvFileInput {
-            display: none;
+        .timeline-header {
+            grid-column: 2 / -1;
+            display: grid;
+            grid-template-columns: repeat(24, 1fr);
+            text-align: center;
+            font-size: 12px;
+            color: #6b7280;
+            position: sticky;
+            top: 0;
+            background-color: #f9fafb;
+            z-index: 20;
         }
-        /* 編集可能なセルのスタイル */
-        [contenteditable="true"] {
-            outline: 2px solid transparent;
-            transition: outline-color 0.2s;
+        .driver-lane {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: 120px repeat(24, 1fr);
+            border-bottom: 1px solid #e5e7eb;
+            position: relative;
         }
-        [contenteditable="true"]:focus {
-            outline-color: #3b82f6; /* blue-500 */
-            background-color: #eff6ff; /* blue-50 */
+        .driver-name {
+            grid-column: 1 / 2;
+            padding: 1rem;
+            font-weight: 500;
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 10;
         }
+        .driver-schedule {
+            grid-column: 2 / -1;
+            position: relative;
+            background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px);
+            background-size: calc(100% / 24) 100%;
+        }
+        .schedule-block {
+            position: absolute;
+            top: 10px;
+            height: calc(100% - 20px);
+            background-color: #fef08a; /* yellow-200 */
+            border: 1px solid #facc15; /* yellow-400 */
+            border-radius: 4px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 5px;
+        }
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            width: 8px;
+            height: 100%;
+            cursor: ew-resize;
+        }
+        .resize-handle-left { left: 0; }
+        .resize-handle-right { right: 0; }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         
-        <!-- ヘッダーセクション -->
         <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">CSV Viewer and Editor</h1>
-            <p class="mt-2 text-gray-600">CSVファイルを読み込み、編集して保存できます。</p>
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">配送スケジュールプランナー</h1>
+            <p class="mt-2 text-gray-600">CSVを読み込み、テーブルまたはスケジュール表で配送予定を編集します。</p>
         </header>
 
         <!-- 操作セクション -->
-        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <!-- ファイル選択ボタン -->
-                <label for="csvFileInput" class="cursor-pointer bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 ease-in-out shadow-sm text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    CSVファイルを選択
-                </label>
-                <!-- 文字コード選択 -->
-                <div class="flex items-center gap-2">
-                    <label for="encodingSelector" class="text-sm font-medium text-gray-700">文字コード:</label>
-                    <select id="encodingSelector" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+        <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                <!-- ファイル選択 -->
+                <div class="flex flex-col items-center">
+                    <label for="csvFileInput" class="cursor-pointer bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition w-full text-center">ファイルを選択</label>
+                    <select id="encodingSelector" class="mt-2 rounded-md border-gray-300 shadow-sm w-full">
                         <option value="UTF-8">UTF-8</option>
                         <option value="Shift_JIS" selected>Shift_JIS</option>
                     </select>
                 </div>
-                <!-- 保存ボタン -->
-                <button id="saveButton" disabled class="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300 ease-in-out shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
-                    </svg>
-                    CSVを保存
-                </button>
+                <!-- 表示切替 -->
+                <div class="flex justify-center border border-gray-200 rounded-lg p-1">
+                    <button id="viewTableBtn" class="px-4 py-2 text-sm font-medium rounded-md bg-blue-100 text-blue-700 w-1/2">テーブル</button>
+                    <button id="viewScheduleBtn" class="px-4 py-2 text-sm font-medium rounded-md w-1/2">スケジュール</button>
+                </div>
+                <!-- 保存 -->
+                <div class="flex flex-col items-center">
+                    <button id="saveButton" disabled class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition w-full disabled:bg-gray-400">CSVを保存</button>
+                </div>
             </div>
-             <!-- 実際のファイル入力フィールド（非表示） -->
             <input type="file" id="csvFileInput" accept=".csv">
             <p id="fileName" class="mt-4 text-sm text-gray-500 text-center">ファイルが選択されていません</p>
         </div>
 
         <!-- テーブル表示セクション -->
-        <div id="tableContainer" class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div id="tableView" class="bg-white rounded-lg shadow-md overflow-hidden">
             <div class="overflow-x-auto">
                 <table id="csvTable" class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <!-- ヘッダー行はJavaScriptで動的に生成されます -->
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                                ファイルを選択すると、ここにデータが表示されます。
-                            </td>
-                        </tr>
-                    </tbody>
+                    <thead></thead>
+                    <tbody></tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- スケジュール表示セクション -->
+        <div id="scheduleView" class="hidden bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="schedule-grid">
+                <div class="driver-name" style="grid-row: 1; border-bottom: 1px solid #e5e7eb;"></div>
+                <div id="timelineHeader" class="timeline-header"></div>
+                <div id="scheduleBody" style="grid-column: 1 / -1; display: contents;"></div>
             </div>
         </div>
 
     </div>
 
     <script>
-        // DOM要素を取得
+        // DOM要素
         const csvFileInput = document.getElementById('csvFileInput');
         const fileNameDisplay = document.getElementById('fileName');
-        const tableHead = document.querySelector('#csvTable thead');
-        const tableBody = document.querySelector('#csvTable tbody');
         const encodingSelector = document.getElementById('encodingSelector');
         const saveButton = document.getElementById('saveButton');
-        let originalFileName = 'data.csv';
+        const viewTableBtn = document.getElementById('viewTableBtn');
+        const viewScheduleBtn = document.getElementById('viewScheduleBtn');
+        const tableView = document.getElementById('tableView');
+        const scheduleView = document.getElementById('scheduleView');
 
-        // ファイル選択イベント
-        csvFileInput.addEventListener('change', (event) => {
+        // アプリケーションの状態
+        let originalFileName = 'data.csv';
+        let headers = [];
+        let csvData = []; // { data: string[], id: number }[]
+
+        // --- イベントリスナー ---
+        csvFileInput.addEventListener('change', handleFileSelect);
+        saveButton.addEventListener('click', handleSave);
+        viewTableBtn.addEventListener('click', () => switchView('table'));
+        viewScheduleBtn.addEventListener('click', () => switchView('schedule'));
+
+        function handleFileSelect(event) {
             const file = event.target.files[0];
-            if (!file) {
-                fileNameDisplay.textContent = 'ファイルが選択されていません';
-                saveButton.disabled = true;
-                return;
-            }
+            if (!file) return;
             originalFileName = file.name;
             fileNameDisplay.textContent = `編集中: ${file.name}`;
             const reader = new FileReader();
             reader.onload = (e) => {
-                const text = e.target.result;
-                updateTable(text);
-                saveButton.disabled = false; // テーブルが読み込まれたら保存ボタンを有効化
+                parseCSV(e.target.result);
+                renderAll();
+                saveButton.disabled = false;
             };
-            const encoding = encodingSelector.value;
-            reader.readAsText(file, encoding);
-        });
-
-        // 保存ボタンのクリックイベント
-        saveButton.addEventListener('click', () => {
-            const csvContent = tableToCSV();
-            downloadCSV(csvContent, `edited_${originalFileName}`);
-        });
-
-        /**
-         * HTMLテーブルの内容をCSV形式の文字列に変換する関数
-         * @returns {string} CSV形式の文字列
-         */
-        function tableToCSV() {
-            const rows = [];
-            // ヘッダー行を取得
-            const headerCells = Array.from(tableHead.querySelectorAll('th')).map(th => `"${th.textContent.trim()}"`);
-            rows.push(headerCells.join(','));
-
-            // データ行を取得
-            Array.from(tableBody.querySelectorAll('tr')).forEach(tr => {
-                const cells = Array.from(tr.querySelectorAll('td')).map(td => `"${td.textContent.trim()}"`);
-                rows.push(cells.join(','));
-            });
-            return rows.join('\n');
+            reader.readAsText(file, encodingSelector.value);
         }
 
-        /**
-         * CSVコンテンツをファイルとしてダウンロードさせる関数
-         * @param {string} csvContent - ダウンロードするCSV文字列
-         * @param {string} fileName - ダウンロード時のファイル名
-         */
+        function handleSave() {
+            const csvContent = generateCSV();
+            downloadCSV(csvContent, `edited_${originalFileName}`);
+        }
+
+        function switchView(view) {
+            if (view === 'table') {
+                tableView.classList.remove('hidden');
+                scheduleView.classList.add('hidden');
+                viewTableBtn.classList.add('bg-blue-100', 'text-blue-700');
+                viewScheduleBtn.classList.remove('bg-blue-100', 'text-blue-700');
+            } else {
+                tableView.classList.add('hidden');
+                scheduleView.classList.remove('hidden');
+                viewScheduleBtn.classList.add('bg-blue-100', 'text-blue-700');
+                viewTableBtn.classList.remove('bg-blue-100', 'text-blue-700');
+                renderSchedule(); // 表示するたびに再描画
+            }
+        }
+
+        // --- データ処理 ---
+        function parseCSV(text) {
+            const rows = text.trim().split(/\r?\n/);
+            headers = rows.length > 0 ? rows[0].split(',').map(h => h.trim()) : [];
+            csvData = rows.slice(1).map((row, index) => ({
+                id: index,
+                data: row.split(',').map(cell => cell.trim())
+            }));
+        }
+
+        function generateCSV() {
+            const headerRow = headers.map(h => `"${h}"`).join(',');
+            const dataRows = csvData.map(rowObj => 
+                rowObj.data.map(cell => `"${cell}"`).join(',')
+            );
+            return [headerRow, ...dataRows].join('\n');
+        }
+
         function downloadCSV(csvContent, fileName) {
-            // BOM（バイトオーダーマーク）を先頭に追加してExcelでの文字化けを防ぐ
             const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
             const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.style.display = 'none';
             a.href = url;
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
+            URL.revokeObjectURL(url);
             document.body.removeChild(a);
         }
 
-        /**
-         * CSVテキストをパースしてHTMLテーブルを更新する関数
-         * @param {string} csvText - 読み込まれたCSVファイルのテキストデータ
-         */
-        function updateTable(csvText) {
+        // --- 描画 ---
+        function renderAll() {
+            renderTable();
+            renderSchedule();
+        }
+
+        function renderTable() {
+            const tableHead = document.querySelector('#csvTable thead');
+            const tableBody = document.querySelector('#csvTable tbody');
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
-            const rows = csvText.trim().split(/\r?\n/);
-            if (rows.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">ファイルにデータがありません。</td></tr>`;
-                return;
-            }
 
             const headerRow = document.createElement('tr');
-            const headers = rows[0].split(',');
             headers.forEach(headerText => {
                 const th = document.createElement('th');
-                th.textContent = headerText.trim();
-                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-10';
+                th.textContent = headerText;
+                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
                 headerRow.appendChild(th);
             });
             tableHead.appendChild(headerRow);
 
-            const dataRows = rows.slice(1);
-            dataRows.forEach(rowText => {
-                if (rowText.trim() === '') return;
-                const dataRow = document.createElement('tr');
-                const cells = rowText.split(',');
-                cells.forEach(cellData => {
+            csvData.forEach(rowObj => {
+                const tr = document.createElement('tr');
+                tr.dataset.id = rowObj.id;
+                rowObj.data.forEach((cellData, colIndex) => {
                     const td = document.createElement('td');
-                    td.textContent = cellData.trim();
-                    td.setAttribute('contenteditable', 'true'); // セルを編集可能にする
+                    td.textContent = cellData;
+                    td.dataset.col = colIndex;
+                    td.setAttribute('contenteditable', 'true');
                     td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-800';
-                    dataRow.appendChild(td);
+                    td.addEventListener('blur', (e) => {
+                        const id = parseInt(e.target.parentElement.dataset.id);
+                        const col = parseInt(e.target.dataset.col);
+                        const newData = e.target.textContent;
+                        const targetRow = csvData.find(d => d.id === id);
+                        if (targetRow && targetRow.data[col] !== newData) {
+                            targetRow.data[col] = newData;
+                        }
+                    });
+                    tr.appendChild(td);
                 });
-                dataRow.classList.add('hover:bg-gray-50', 'transition-colors', 'duration-150');
-                tableBody.appendChild(dataRow);
+                tableBody.appendChild(tr);
             });
-
-            if (dataRows.length === 0 || (dataRows.length === 1 && dataRows[0].trim() === '')) {
-                 tableBody.innerHTML = `<tr><td colspan="${headers.length}" class="px-6 py-12 text-center text-gray-500">ヘッダー以外のデータがありません。</td></tr>`;
-            }
         }
-    </script>
 
+        function renderSchedule() {
+            const timelineHeader = document.getElementById('timelineHeader');
+            const scheduleBody = document.getElementById('scheduleBody');
+            timelineHeader.innerHTML = '';
+            scheduleBody.innerHTML = '';
+
+            for (let i = 0; i < 24; i++) {
+                const hour = document.createElement('div');
+                hour.textContent = `${i}:00`;
+                timelineHeader.appendChild(hour);
+            }
+
+            const driverIndex = headers.indexOf('ドライバ名');
+            if (driverIndex === -1) return;
+
+            const drivers = [...new Set(csvData.map(row => row.data[driverIndex]))];
+
+            drivers.forEach((driver, i) => {
+                const lane = document.createElement('div');
+                lane.className = 'driver-lane';
+                lane.style.gridRow = `${i + 2}`;
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'driver-name';
+                nameDiv.textContent = driver;
+                lane.appendChild(nameDiv);
+
+                const scheduleDiv = document.createElement('div');
+                scheduleDiv.className = 'driver-schedule';
+                lane.appendChild(scheduleDiv);
+
+                scheduleBody.appendChild(lane);
+
+                const driverJobs = csvData.filter(row => row.data[driverIndex] === driver);
+                renderBlocksForDriver(scheduleDiv, driverJobs);
+            });
+        }
+
+        function renderBlocksForDriver(container, jobs) {
+            const startIndex = headers.indexOf('出発日時');
+            const endIndex = headers.indexOf('作業日時'); // or 帰着日時
+            if (startIndex === -1 || endIndex === -1) return;
+
+            jobs.forEach(job => {
+                const start = timeToMinutes(job.data[startIndex]);
+                const end = timeToMinutes(job.data[endIndex]);
+                if (start === null || end === null || end <= start) return;
+
+                const block = document.createElement('div');
+                block.className = 'schedule-block';
+                block.dataset.id = job.id;
+                block.textContent = `${job.data[headers.indexOf('コンテナ番号')] || ''}`;
+                
+                const left = (start / (24 * 60)) * 100;
+                const width = ((end - start) / (24 * 60)) * 100;
+
+                block.style.left = `${left}%`;
+                block.style.width = `${width}%`;
+
+                // リサイズハンドル
+                const leftHandle = document.createElement('div');
+                leftHandle.className = 'resize-handle resize-handle-left';
+                block.appendChild(leftHandle);
+                const rightHandle = document.createElement('div');
+                rightHandle.className = 'resize-handle resize-handle-right';
+                block.appendChild(rightHandle);
+
+                container.appendChild(block);
+                addBlockInteractions(block);
+            });
+        }
+
+        // --- 時刻変換ヘルパー ---
+        function timeToMinutes(timeStr) {
+            if (!timeStr || !timeStr.includes(':')) return null;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        function minutesToTime(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60) % 24;
+            const minutes = Math.round(totalMinutes % 60);
+            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+        }
+
+        // --- ブロックの操作 ---
+        let activeInteraction = null;
+
+        function addBlockInteractions(block) {
+            block.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                const container = block.parentElement;
+                const rect = container.getBoundingClientRect();
+                
+                if (e.target.classList.contains('resize-handle-left')) {
+                    activeInteraction = { type: 'resize-left', block, startX: e.clientX, startWidth: block.offsetWidth, startLeft: block.offsetLeft };
+                } else if (e.target.classList.contains('resize-handle-right')) {
+                    activeInteraction = { type: 'resize-right', block, startX: e.clientX, startWidth: block.offsetWidth };
+                } else {
+                    activeInteraction = { type: 'move', block, startX: e.clientX, startLeft: block.offsetLeft };
+                }
+                activeInteraction.containerRect = rect;
+            });
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (!activeInteraction) return;
+            e.preventDefault();
+            
+            const { type, block, startX, startLeft, startWidth, containerRect } = activeInteraction;
+            const dx = e.clientX - startX;
+            const pixelsPerMinute = containerRect.width / (24 * 60);
+
+            if (type === 'move') {
+                const newLeft = Math.max(0, startLeft + dx);
+                block.style.left = `${newLeft}px`;
+            } else if (type === 'resize-right') {
+                const newWidth = Math.max(10, startWidth + dx); // 最小幅
+                block.style.width = `${newWidth}px`;
+            } else if (type === 'resize-left') {
+                const newWidth = Math.max(10, startWidth - dx);
+                const newLeft = Math.max(0, startLeft + dx);
+                block.style.width = `${newWidth}px`;
+                block.style.left = `${newLeft}px`;
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (!activeInteraction) return;
+            
+            const { block, containerRect } = activeInteraction;
+            const pixelsPerMinute = containerRect.width / (24 * 60);
+            
+            // ピクセルから%に変換してスタイルを確定
+            const newLeftPercent = (block.offsetLeft / containerRect.width) * 100;
+            const newWidthPercent = (block.offsetWidth / containerRect.width) * 100;
+            block.style.left = `${newLeftPercent}%`;
+            block.style.width = `${newWidthPercent}%`;
+
+            // データ更新
+            const startMinutes = (newLeftPercent / 100) * 24 * 60;
+            const durationMinutes = (newWidthPercent / 100) * 24 * 60;
+            const endMinutes = startMinutes + durationMinutes;
+
+            const id = parseInt(block.dataset.id);
+            const targetRow = csvData.find(d => d.id === id);
+            
+            if (targetRow) {
+                const startIndex = headers.indexOf('出発日時');
+                const endIndex = headers.indexOf('作業日時');
+                targetRow.data[startIndex] = minutesToTime(startMinutes);
+                targetRow.data[endIndex] = minutesToTime(endMinutes);
+                
+                // テーブルも更新
+                renderTable();
+            }
+
+            activeInteraction = null;
+        });
+    </script>
 </body>
 </html>
