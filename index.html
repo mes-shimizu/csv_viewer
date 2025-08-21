@@ -160,6 +160,7 @@
         let originalFileName = 'data.csv';
         let headers = [];
         let csvData = []; // { data: string[], id: number }[]
+        let columnIndices = {}; // CSVの列インデックスを保持
 
         // --- イベントリスナー ---
         csvFileInput.addEventListener('change', handleFileSelect);
@@ -175,6 +176,7 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 parseCSV(e.target.result);
+                findColumnIndices(); // ヘッダーを解析した後に列インデックスを特定
                 renderAll();
                 saveButton.disabled = false;
             };
@@ -209,6 +211,26 @@
                 id: index,
                 data: row.split(',').map(cell => cell.trim())
             }));
+        }
+
+        /**
+         * ヘッダーを解析して、必要な列のインデックスを見つける
+         * 日本語と英語のヘッダーに両対応
+         */
+        function findColumnIndices() {
+            const findIndex = (en, jp) => {
+                let index = headers.indexOf(en);
+                if (index === -1) index = headers.indexOf(jp);
+                return index;
+            };
+            columnIndices = {
+                driver: findIndex('driver_name', 'ドライバ名'),
+                headId: findIndex('head_id', 'ヘッドID'),
+                start: findIndex('departure_time', '出発日時'),
+                end: findIndex('arrival_time', '帰着日時') > -1 ? findIndex('arrival_time', '帰着日時') : findIndex('work_time', '作業日時'),
+                seq: findIndex('seq_no', 'シーケンス番号'),
+                container: findIndex('container_no', 'コンテナ番号')
+            };
         }
 
         function generateCSV() {
@@ -289,16 +311,14 @@
                 timelineHeader.appendChild(hour);
             }
 
-            const driverIndex = headers.indexOf('driver_name');
-            const headIdIndex = headers.indexOf('head_id');
-            if (driverIndex === -1) return;
+            if (columnIndices.driver === -1) return;
 
             const driversData = csvData.reduce((acc, row) => {
-                const driverName = row.data[driverIndex];
+                const driverName = row.data[columnIndices.driver];
                 if (!driverName) return acc;
                 if (!acc[driverName]) {
                     acc[driverName] = {
-                        headId: headIdIndex !== -1 ? row.data[headIdIndex] : 'N/A',
+                        headId: columnIndices.headId !== -1 ? row.data[columnIndices.headId] : 'N/A',
                         jobs: []
                     };
                 }
@@ -328,24 +348,19 @@
         }
 
         function renderBlocksForDriver(container, jobs) {
-            const startIndex = headers.indexOf('departure_time');
-            const endIndex = headers.indexOf('arrival_time');
-            const seqIndex = headers.indexOf('seq_no');
-            const containerIndex = headers.indexOf('container_no');
-
-            if (startIndex === -1 || endIndex === -1) return;
+            if (columnIndices.start === -1 || columnIndices.end === -1) return;
 
             jobs.forEach(job => {
-                const start = timeToMinutes(job.data[startIndex]);
-                const end = timeToMinutes(job.data[endIndex]);
+                const start = timeToMinutes(job.data[columnIndices.start]);
+                const end = timeToMinutes(job.data[columnIndices.end]);
                 if (start === null || end === null || end <= start) return;
 
                 const block = document.createElement('div');
                 block.className = 'schedule-block';
                 block.dataset.id = job.id;
                 
-                const seqNo = seqIndex !== -1 ? job.data[seqIndex] : '';
-                const containerNo = containerIndex !== -1 ? job.data[containerIndex] : '';
+                const seqNo = columnIndices.seq !== -1 ? job.data[columnIndices.seq] : '';
+                const containerNo = columnIndices.container !== -1 ? job.data[columnIndices.container] : '';
                 block.innerHTML = `<span class="font-semibold">${seqNo}</span><span class="text-gray-700">${containerNo}</span>`;
                 
                 const left = (start / (24 * 60)) * 100;
@@ -368,8 +383,12 @@
 
         // --- 時刻変換ヘルパー ---
         function timeToMinutes(timeStr) {
-            if (!timeStr || !timeStr.includes(':')) return null;
-            const [hours, minutes] = timeStr.split(':').map(Number);
+            if (!timeStr) return null;
+            // "10:30" や "9:00" のような形式を正規表現で抽出
+            const match = timeStr.match(/(\d{1,2}):(\d{2})/);
+            if (!match) return null;
+            const hours = parseInt(match[1], 10);
+            const minutes = parseInt(match[2], 10);
             return hours * 60 + minutes;
         }
 
@@ -438,10 +457,8 @@
             const targetRow = csvData.find(d => d.id === id);
             
             if (targetRow) {
-                const startIndex = headers.indexOf('departure_time');
-                const endIndex = headers.indexOf('arrival_time');
-                if(startIndex > -1) targetRow.data[startIndex] = minutesToTime(startMinutes);
-                if(endIndex > -1) targetRow.data[endIndex] = minutesToTime(endMinutes);
+                if(columnIndices.start > -1) targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
+                if(columnIndices.end > -1) targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
                 
                 renderTable();
             }
