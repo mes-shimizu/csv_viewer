@@ -40,7 +40,7 @@
             grid-template-columns: 120px repeat(15, 1fr); /* 15時間分 */
             border-bottom: 1px solid #e5e7eb;
             position: relative;
-            min-height: 4rem; /* 行の高さを広げる */
+            min-height: 4.5rem; /* 行の高さをさらに広げる */
         }
         .driver-name {
             grid-column: 1 / 2;
@@ -74,7 +74,7 @@
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            white-space: nowrap;
+            /* white-space: nowrap; を削除してテキストの折り返しを許可 */
             overflow: hidden;
             text-overflow: ellipsis;
             padding: 0 5px;
