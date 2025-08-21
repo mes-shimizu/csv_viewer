@@ -18,14 +18,14 @@
         /* スケジュールビューのスタイル */
         .schedule-grid {
             display: grid;
-            /* 1列目(ドライバー名) + 24時間分の列 */
-            grid-template-columns: 120px repeat(24, 1fr);
+            /* 1列目(ドライバー名) + 表示時間分の列 */
+            grid-template-columns: 120px repeat(15, 1fr); /* 5:00-20:00の15時間 */
             overflow-x: auto;
         }
         .timeline-header {
             grid-column: 2 / -1;
             display: grid;
-            grid-template-columns: repeat(24, 1fr);
+            grid-template-columns: repeat(15, 1fr); /* 15時間分 */
             text-align: center;
             font-size: 12px;
             color: #6b7280;
@@ -37,39 +37,40 @@
         .driver-lane {
             grid-column: 1 / -1;
             display: grid;
-            grid-template-columns: 120px repeat(24, 1fr);
+            grid-template-columns: 120px repeat(15, 1fr); /* 15時間分 */
             border-bottom: 1px solid #e5e7eb;
             position: relative;
+            min-height: 4rem; /* 行の高さを広げる */
         }
         .driver-name {
             grid-column: 1 / 2;
-            padding: 0.5rem; /* パディングを調整 */
+            padding: 0.5rem;
             font-weight: 500;
             position: sticky;
             left: 0;
             background-color: white;
             z-index: 10;
-            display: flex; /* Flexboxを適用 */
-            flex-direction: column; /* 縦並び */
-            justify-content: center; /* 中央揃え */
-            text-align: center; /* テキストを中央揃え */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            text-align: center;
         }
         .driver-schedule {
             grid-column: 2 / -1;
             position: relative;
             background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px);
-            background-size: calc(100% / 24) 100%;
+            background-size: calc(100% / 15) 100%; /* 15時間分 */
         }
         .schedule-block {
             position: absolute;
-            top: 10px;
-            height: calc(100% - 20px);
+            top: 5px; /* 上下のマージンを調整 */
+            height: calc(100% - 10px); /* ブロックの高さを大きくする */
             background-color: #fef08a; /* yellow-200 */
             border: 1px solid #facc15; /* yellow-400 */
             border-radius: 4px;
             cursor: move;
             display: flex;
-            flex-direction: column; /* 縦並び */
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-size: 12px;
@@ -77,7 +78,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             padding: 0 5px;
-            line-height: 1.2; /* 行間を調整 */
+            line-height: 1.3; /* 行間を調整 */
         }
         .resize-handle {
             position: absolute;
@@ -161,6 +162,12 @@
         let headers = [];
         let csvData = []; // { data: string[], id: number }[]
         let columnIndices = {}; // CSVの列インデックスを保持
+        
+        // スケジュール表示時間の設定
+        const SCHEDULE_START_HOUR = 5;
+        const SCHEDULE_END_HOUR = 20;
+        const SCHEDULE_DURATION_HOURS = SCHEDULE_END_HOUR - SCHEDULE_START_HOUR;
+
 
         // --- イベントリスナー ---
         csvFileInput.addEventListener('change', handleFileSelect);
@@ -176,7 +183,7 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 parseCSV(e.target.result);
-                findColumnIndices(); // ヘッダーを解析した後に列インデックスを特定
+                findColumnIndices();
                 renderAll();
                 saveButton.disabled = false;
             };
@@ -199,7 +206,7 @@
                 scheduleView.classList.remove('hidden');
                 viewScheduleBtn.classList.add('bg-blue-100', 'text-blue-700');
                 viewTableBtn.classList.remove('bg-blue-100', 'text-blue-700');
-                renderSchedule(); // 表示するたびに再描画
+                renderSchedule();
             }
         }
 
@@ -213,10 +220,6 @@
             }));
         }
 
-        /**
-         * ヘッダーを解析して、必要な列のインデックスを見つける
-         * 日本語と英語のヘッダーに両対応
-         */
         function findColumnIndices() {
             const findIndex = (en, jp) => {
                 let index = headers.indexOf(en);
@@ -305,7 +308,7 @@
             timelineHeader.innerHTML = '';
             scheduleBody.innerHTML = '';
 
-            for (let i = 0; i < 24; i++) {
+            for (let i = SCHEDULE_START_HOUR; i < SCHEDULE_END_HOUR; i++) {
                 const hour = document.createElement('div');
                 hour.textContent = `${i}:00`;
                 timelineHeader.appendChild(hour);
@@ -349,11 +352,18 @@
 
         function renderBlocksForDriver(container, jobs) {
             if (columnIndices.start === -1 || columnIndices.end === -1) return;
+            
+            const viewStartMinutes = SCHEDULE_START_HOUR * 60;
+            const viewEndMinutes = SCHEDULE_END_HOUR * 60;
+            const viewTotalMinutes = (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR) * 60;
 
             jobs.forEach(job => {
                 const start = timeToMinutes(job.data[columnIndices.start]);
                 const end = timeToMinutes(job.data[columnIndices.end]);
-                if (start === null || end === null || end <= start) return;
+
+                if (start === null || end === null || end <= start || end < viewStartMinutes || start > viewEndMinutes) {
+                    return; // 時間が無効か、表示範囲外ならスキップ
+                }
 
                 const block = document.createElement('div');
                 block.className = 'schedule-block';
@@ -363,8 +373,12 @@
                 const containerNo = columnIndices.container !== -1 ? job.data[columnIndices.container] : '';
                 block.innerHTML = `<span class="font-semibold">${seqNo}</span><span class="text-gray-700">${containerNo}</span>`;
                 
-                const left = (start / (24 * 60)) * 100;
-                const width = ((end - start) / (24 * 60)) * 100;
+                // 表示範囲に合わせて開始位置と幅を計算
+                const clippedStart = Math.max(start, viewStartMinutes);
+                const clippedEnd = Math.min(end, viewEndMinutes);
+
+                const left = ((clippedStart - viewStartMinutes) / viewTotalMinutes) * 100;
+                const width = ((clippedEnd - clippedStart) / viewTotalMinutes) * 100;
 
                 block.style.left = `${left}%`;
                 block.style.width = `${width}%`;
@@ -384,7 +398,6 @@
         // --- 時刻変換ヘルパー ---
         function timeToMinutes(timeStr) {
             if (!timeStr) return null;
-            // "10:30" や "9:00" のような形式を正規表現で抽出
             const match = timeStr.match(/(\d{1,2}):(\d{2})/);
             if (!match) return null;
             const hours = parseInt(match[1], 10);
@@ -449,8 +462,11 @@
             block.style.left = `${newLeftPercent}%`;
             block.style.width = `${newWidthPercent}%`;
 
-            const startMinutes = (newLeftPercent / 100) * 24 * 60;
-            const durationMinutes = (newWidthPercent / 100) * 24 * 60;
+            const viewStartMinutes = SCHEDULE_START_HOUR * 60;
+            const viewTotalMinutes = SCHEDULE_DURATION_HOURS * 60;
+
+            const startMinutes = (newLeftPercent / 100) * viewTotalMinutes + viewStartMinutes;
+            const durationMinutes = (newWidthPercent / 100) * viewTotalMinutes;
             const endMinutes = startMinutes + durationMinutes;
 
             const id = parseInt(block.dataset.id);
