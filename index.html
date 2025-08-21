@@ -3,21 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Viewer</title>
-    <!-- Tailwind CSS‚ğCDNŒo—R‚Å“Ç‚İ‚İ -->
+    <title>CSV Viewer and Editor</title>
+    <!-- Tailwind CSSã‚’CDNçµŒç”±ã§èª­ã¿è¾¼ã¿ -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts‚©‚çInterƒtƒHƒ“ƒg‚ğ“Ç‚İ‚İ -->
+    <!-- Google Fontsã‹ã‚‰Interãƒ•ã‚©ãƒ³ãƒˆã‚’èª­ã¿è¾¼ã¿ -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* “ú–{ŒêƒtƒHƒ“ƒg‚Æ‰pŒêƒtƒHƒ“ƒg‚Ìw’è */
+        /* æ—¥æœ¬èªãƒ•ã‚©ãƒ³ãƒˆã¨è‹±èªãƒ•ã‚©ãƒ³ãƒˆã®æŒ‡å®š */
         body {
             font-family: 'Inter', 'Noto Sans JP', sans-serif;
         }
-        /* ƒtƒ@ƒCƒ‹“ü—ÍƒtƒB[ƒ‹ƒh‚ğ”ñ•\¦‚É‚·‚é */
+        /* ãƒ•ã‚¡ã‚¤ãƒ«å…¥åŠ›ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰ã‚’éè¡¨ç¤ºã«ã™ã‚‹ */
         #csvFileInput {
             display: none;
+        }
+        /* ç·¨é›†å¯èƒ½ãªã‚»ãƒ«ã®ã‚¹ã‚¿ã‚¤ãƒ« */
+        [contenteditable="true"] {
+            outline: 2px solid transparent;
+            transition: outline-color 0.2s;
+        }
+        [contenteditable="true"]:focus {
+            outline-color: #3b82f6; /* blue-500 */
+            background-color: #eff6ff; /* blue-50 */
         }
     </style>
 </head>
@@ -25,39 +34,54 @@
 
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         
-        <!-- ƒwƒbƒ_[ƒZƒNƒVƒ‡ƒ“ -->
+        <!-- ãƒ˜ãƒƒãƒ€ãƒ¼ã‚»ã‚¯ã‚·ãƒ§ãƒ³ -->
         <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">CSV Viewer</h1>
-            <p class="mt-2 text-gray-600">CSVƒtƒ@ƒCƒ‹‚ğƒuƒ‰ƒEƒUã‚ÅExcel‚Ì‚æ‚¤‚É•\¦‚µ‚Ü‚·B</p>
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">CSV Viewer and Editor</h1>
+            <p class="mt-2 text-gray-600">CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’èª­ã¿è¾¼ã¿ã€ç·¨é›†ã—ã¦ä¿å­˜ã§ãã¾ã™ã€‚</p>
         </header>
 
-        <!-- ƒtƒ@ƒCƒ‹‘I‘ğƒZƒNƒVƒ‡ƒ“ -->
-        <div class="max-w-xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8 flex flex-col items-center">
-            <!-- ƒJƒXƒ^ƒ€ƒtƒ@ƒCƒ‹‘I‘ğƒ{ƒ^ƒ“ -->
-            <label for="csvFileInput" class="cursor-pointer bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 ease-in-out shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                </svg>
-                CSVƒtƒ@ƒCƒ‹‚ğ‘I‘ğ
-            </label>
-            <!-- ÀÛ‚Ìƒtƒ@ƒCƒ‹“ü—ÍƒtƒB[ƒ‹ƒhi”ñ•\¦j -->
+        <!-- æ“ä½œã‚»ã‚¯ã‚·ãƒ§ãƒ³ -->
+        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <!-- ãƒ•ã‚¡ã‚¤ãƒ«é¸æŠãƒœã‚¿ãƒ³ -->
+                <label for="csvFileInput" class="cursor-pointer bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 ease-in-out shadow-sm text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    CSVãƒ•ã‚¡ã‚¤ãƒ«ã‚’é¸æŠ
+                </label>
+                <!-- æ–‡å­—ã‚³ãƒ¼ãƒ‰é¸æŠ -->
+                <div class="flex items-center gap-2">
+                    <label for="encodingSelector" class="text-sm font-medium text-gray-700">æ–‡å­—ã‚³ãƒ¼ãƒ‰:</label>
+                    <select id="encodingSelector" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <option value="UTF-8">UTF-8</option>
+                        <option value="Shift_JIS" selected>Shift_JIS</option>
+                    </select>
+                </div>
+                <!-- ä¿å­˜ãƒœã‚¿ãƒ³ -->
+                <button id="saveButton" disabled class="bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition duration-300 ease-in-out shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z" />
+                    </svg>
+                    CSVã‚’ä¿å­˜
+                </button>
+            </div>
+             <!-- å®Ÿéš›ã®ãƒ•ã‚¡ã‚¤ãƒ«å…¥åŠ›ãƒ•ã‚£ãƒ¼ãƒ«ãƒ‰ï¼ˆéè¡¨ç¤ºï¼‰ -->
             <input type="file" id="csvFileInput" accept=".csv">
-            <p id="fileName" class="mt-4 text-sm text-gray-500">ƒtƒ@ƒCƒ‹‚ª‘I‘ğ‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ</p>
+            <p id="fileName" class="mt-4 text-sm text-gray-500 text-center">ãƒ•ã‚¡ã‚¤ãƒ«ãŒé¸æŠã•ã‚Œã¦ã„ã¾ã›ã‚“</p>
         </div>
 
-        <!-- ƒe[ƒuƒ‹•\¦ƒZƒNƒVƒ‡ƒ“ -->
+        <!-- ãƒ†ãƒ¼ãƒ–ãƒ«è¡¨ç¤ºã‚»ã‚¯ã‚·ãƒ§ãƒ³ -->
         <div id="tableContainer" class="bg-white rounded-lg shadow-md overflow-hidden">
-            <!-- ƒe[ƒuƒ‹‚ğ‰¡ƒXƒNƒ[ƒ‹‰Â”\‚É‚·‚é‚½‚ß‚Ìƒ‰ƒbƒp[ -->
             <div class="overflow-x-auto">
                 <table id="csvTable" class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
-                        <!-- ƒwƒbƒ_[s‚ÍJavaScript‚Å“®“I‚É¶¬‚³‚ê‚Ü‚· -->
+                        <!-- ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã¯JavaScriptã§å‹•çš„ã«ç”Ÿæˆã•ã‚Œã¾ã™ -->
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
-                        <!-- ƒf[ƒ^s‚ÍJavaScript‚Å“®“I‚É¶¬‚³‚ê‚Ü‚· -->
                         <tr>
                             <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                                ƒtƒ@ƒCƒ‹‚ğ‘I‘ğ‚·‚é‚ÆA‚±‚±‚Éƒf[ƒ^‚ª•\¦‚³‚ê‚Ü‚·B
+                                ãƒ•ã‚¡ã‚¤ãƒ«ã‚’é¸æŠã™ã‚‹ã¨ã€ã“ã“ã«ãƒ‡ãƒ¼ã‚¿ãŒè¡¨ç¤ºã•ã‚Œã¾ã™ã€‚
                             </td>
                         </tr>
                     </tbody>
@@ -68,95 +92,120 @@
     </div>
 
     <script>
-        // DOM—v‘f‚ğæ“¾
+        // DOMè¦ç´ ã‚’å–å¾—
         const csvFileInput = document.getElementById('csvFileInput');
         const fileNameDisplay = document.getElementById('fileName');
         const tableHead = document.querySelector('#csvTable thead');
         const tableBody = document.querySelector('#csvTable tbody');
+        const encodingSelector = document.getElementById('encodingSelector');
+        const saveButton = document.getElementById('saveButton');
+        let originalFileName = 'data.csv';
 
-        // ƒtƒ@ƒCƒ‹‚ª‘I‘ğ‚³‚ê‚½‚Æ‚«‚ÌƒCƒxƒ“ƒgƒŠƒXƒi[
+        // ãƒ•ã‚¡ã‚¤ãƒ«é¸æŠã‚¤ãƒ™ãƒ³ãƒˆ
         csvFileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
-
-            // ƒtƒ@ƒCƒ‹‚ª‘I‘ğ‚³‚ê‚Ä‚¢‚È‚¢ê‡‚Í‰½‚à‚µ‚È‚¢
             if (!file) {
-                fileNameDisplay.textContent = 'ƒtƒ@ƒCƒ‹‚ª‘I‘ğ‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ';
+                fileNameDisplay.textContent = 'ãƒ•ã‚¡ã‚¤ãƒ«ãŒé¸æŠã•ã‚Œã¦ã„ã¾ã›ã‚“';
+                saveButton.disabled = true;
                 return;
             }
-
-            // ƒtƒ@ƒCƒ‹–¼‚ğ•\¦
-            fileNameDisplay.textContent = `‘I‘ğ’†‚Ìƒtƒ@ƒCƒ‹: ${file.name}`;
-
-            // FileReader‚ÌƒCƒ“ƒXƒ^ƒ“ƒX‚ğì¬
+            originalFileName = file.name;
+            fileNameDisplay.textContent = `ç·¨é›†ä¸­: ${file.name}`;
             const reader = new FileReader();
-
-            // ƒtƒ@ƒCƒ‹‚Ì“Ç‚İ‚İ‚ªŠ®—¹‚µ‚½‚Æ‚«‚Ìˆ—
             reader.onload = (e) => {
                 const text = e.target.result;
-                // CSV‚ğƒp[ƒX‚µ‚Äƒe[ƒuƒ‹‚ğXV
                 updateTable(text);
+                saveButton.disabled = false; // ãƒ†ãƒ¼ãƒ–ãƒ«ãŒèª­ã¿è¾¼ã¾ã‚ŒãŸã‚‰ä¿å­˜ãƒœã‚¿ãƒ³ã‚’æœ‰åŠ¹åŒ–
             };
+            const encoding = encodingSelector.value;
+            reader.readAsText(file, encoding);
+        });
 
-            // ƒtƒ@ƒCƒ‹‚ğƒeƒLƒXƒg‚Æ‚µ‚Ä“Ç‚İ‚Şi•¶šƒR[ƒh: UTF-8j
-            // Shift_JIS‚Ìê‡‚Í 'Shift_JIS' ‚É•ÏX‚µ‚Ä‚­‚¾‚³‚¢
-            reader.readAsText(file, 'UTF-8');
+        // ä¿å­˜ãƒœã‚¿ãƒ³ã®ã‚¯ãƒªãƒƒã‚¯ã‚¤ãƒ™ãƒ³ãƒˆ
+        saveButton.addEventListener('click', () => {
+            const csvContent = tableToCSV();
+            downloadCSV(csvContent, `edited_${originalFileName}`);
         });
 
         /**
-         * CSVƒeƒLƒXƒg‚ğƒp[ƒX‚µ‚ÄHTMLƒe[ƒuƒ‹‚ğXV‚·‚éŠÖ”
-         * @param {string} csvText - “Ç‚İ‚Ü‚ê‚½CSVƒtƒ@ƒCƒ‹‚ÌƒeƒLƒXƒgƒf[ƒ^
+         * HTMLãƒ†ãƒ¼ãƒ–ãƒ«ã®å†…å®¹ã‚’CSVå½¢å¼ã®æ–‡å­—åˆ—ã«å¤‰æ›ã™ã‚‹é–¢æ•°
+         * @returns {string} CSVå½¢å¼ã®æ–‡å­—åˆ—
+         */
+        function tableToCSV() {
+            const rows = [];
+            // ãƒ˜ãƒƒãƒ€ãƒ¼è¡Œã‚’å–å¾—
+            const headerCells = Array.from(tableHead.querySelectorAll('th')).map(th => `"${th.textContent.trim()}"`);
+            rows.push(headerCells.join(','));
+
+            // ãƒ‡ãƒ¼ã‚¿è¡Œã‚’å–å¾—
+            Array.from(tableBody.querySelectorAll('tr')).forEach(tr => {
+                const cells = Array.from(tr.querySelectorAll('td')).map(td => `"${td.textContent.trim()}"`);
+                rows.push(cells.join(','));
+            });
+            return rows.join('\n');
+        }
+
+        /**
+         * CSVã‚³ãƒ³ãƒ†ãƒ³ãƒ„ã‚’ãƒ•ã‚¡ã‚¤ãƒ«ã¨ã—ã¦ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ã•ã›ã‚‹é–¢æ•°
+         * @param {string} csvContent - ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ã™ã‚‹CSVæ–‡å­—åˆ—
+         * @param {string} fileName - ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰æ™‚ã®ãƒ•ã‚¡ã‚¤ãƒ«å
+         */
+        function downloadCSV(csvContent, fileName) {
+            // BOMï¼ˆãƒã‚¤ãƒˆã‚ªãƒ¼ãƒ€ãƒ¼ãƒãƒ¼ã‚¯ï¼‰ã‚’å…ˆé ­ã«è¿½åŠ ã—ã¦Excelã§ã®æ–‡å­—åŒ–ã‘ã‚’é˜²ã
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        }
+
+        /**
+         * CSVãƒ†ã‚­ã‚¹ãƒˆã‚’ãƒ‘ãƒ¼ã‚¹ã—ã¦HTMLãƒ†ãƒ¼ãƒ–ãƒ«ã‚’æ›´æ–°ã™ã‚‹é–¢æ•°
+         * @param {string} csvText - èª­ã¿è¾¼ã¾ã‚ŒãŸCSVãƒ•ã‚¡ã‚¤ãƒ«ã®ãƒ†ã‚­ã‚¹ãƒˆãƒ‡ãƒ¼ã‚¿
          */
         function updateTable(csvText) {
-            // ƒe[ƒuƒ‹‚Ì“à—e‚ğƒNƒŠƒA
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
-
-            // ‰üs‚ÅŠes‚É•ªŠ„
             const rows = csvText.trim().split(/\r?\n/);
-
-            // ƒf[ƒ^‚ª‚È‚¢ê‡‚Íˆ—‚ğI—¹
             if (rows.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">ƒtƒ@ƒCƒ‹‚Éƒf[ƒ^‚ª‚ ‚è‚Ü‚¹‚ñB</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-gray-500">ãƒ•ã‚¡ã‚¤ãƒ«ã«ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚Šã¾ã›ã‚“ã€‚</td></tr>`;
                 return;
             }
 
-            // 1. ƒwƒbƒ_[s‚ğˆ—
             const headerRow = document.createElement('tr');
-            // CSV‚Ì1s–Ú‚ğƒwƒbƒ_[‚Æ‚µ‚Äæ“¾
             const headers = rows[0].split(',');
             headers.forEach(headerText => {
                 const th = document.createElement('th');
                 th.textContent = headerText.trim();
-                // Tailwind CSSƒNƒ‰ƒX‚ğ“K—p‚µ‚ÄƒXƒ^ƒCƒŠƒ“ƒO
                 th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-gray-50 z-10';
                 headerRow.appendChild(th);
             });
             tableHead.appendChild(headerRow);
 
-            // 2. ƒf[ƒ^s‚ğˆ— (2s–ÚˆÈ~)
             const dataRows = rows.slice(1);
             dataRows.forEach(rowText => {
-                // ‹ó‚Ìs‚ÍƒXƒLƒbƒv
                 if (rowText.trim() === '') return;
-
                 const dataRow = document.createElement('tr');
-                // Šes‚ğƒJƒ“ƒ}‚ÅƒZƒ‹‚É•ªŠ„
                 const cells = rowText.split(',');
                 cells.forEach(cellData => {
                     const td = document.createElement('td');
                     td.textContent = cellData.trim();
-                    // Tailwind CSSƒNƒ‰ƒX‚ğ“K—p‚µ‚ÄƒXƒ^ƒCƒŠƒ“ƒO
+                    td.setAttribute('contenteditable', 'true'); // ã‚»ãƒ«ã‚’ç·¨é›†å¯èƒ½ã«ã™ã‚‹
                     td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-800';
                     dataRow.appendChild(td);
                 });
-                // s‚Éƒzƒo[ƒGƒtƒFƒNƒg‚ğ’Ç‰Á
                 dataRow.classList.add('hover:bg-gray-50', 'transition-colors', 'duration-150');
                 tableBody.appendChild(dataRow);
             });
 
-            // ƒf[ƒ^‚ªƒwƒbƒ_[‚Ì‚İ‚Ìê‡‚ÌƒƒbƒZ[ƒW
             if (dataRows.length === 0 || (dataRows.length === 1 && dataRows[0].trim() === '')) {
-                 tableBody.innerHTML = `<tr><td colspan="${headers.length}" class="px-6 py-12 text-center text-gray-500">ƒwƒbƒ_[ˆÈŠO‚Ìƒf[ƒ^‚ª‚ ‚è‚Ü‚¹‚ñB</td></tr>`;
+                 tableBody.innerHTML = `<tr><td colspan="${headers.length}" class="px-6 py-12 text-center text-gray-500">ãƒ˜ãƒƒãƒ€ãƒ¼ä»¥å¤–ã®ãƒ‡ãƒ¼ã‚¿ãŒã‚ã‚Šã¾ã›ã‚“ã€‚</td></tr>`;
             }
         }
     </script>
