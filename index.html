@@ -75,10 +75,16 @@
             font-size: 12px;
             padding: 0 5px;
             line-height: 1.3;
+            z-index: 1;
         }
         .unassigned-block {
              background-color: #d1d5db; /* gray-300 */
              border-color: #9ca3af; /* gray-400 */
+        }
+        .overlapping-block {
+            background-color: #f87171; /* red-400 */
+            border-color: #ef4444; /* red-500 */
+            z-index: 2; /* 重複したブロックを前面に表示 */
         }
         .resize-handle {
             position: absolute;
@@ -122,7 +128,7 @@
                 </div>
                 <!-- 保存 -->
                  <div class="flex flex-col items-center">
-                    <button id="saveButton" disabled class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition w-full disabled:bg-gray-400">CSVを保存</button>
+                    <button id="saveButton" disabled class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition w-full disabled:bg-gray-400">サーバへアップロード & CSVを保存</button>
                     <select id="encodingSelector" class="mt-2 rounded-md border-gray-300 shadow-sm w-full text-xs">
                         <option value="UTF-8">文字コード: UTF-8</option>
                         <option value="Shift_JIS" selected>文字コード: Shift_JIS</option>
@@ -417,22 +423,31 @@
             const viewStartMinutes = SCHEDULE_START_HOUR * 60;
             const viewTotalMinutes = (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR) * 60;
 
-            jobs.forEach(job => {
-                const start = timeToMinutes(job.data[isUnassigned ? columnIndices.work : columnIndices.start]);
-                const end = isUnassigned ? start + 120 : timeToMinutes(job.data[columnIndices.end]);
-                if (start === null || end === null || end <= start) return;
+            jobs.forEach(jobA => {
+                const startA = timeToMinutes(jobA.data[isUnassigned ? columnIndices.work : columnIndices.start]);
+                const endA = isUnassigned ? startA + 120 : timeToMinutes(jobA.data[columnIndices.end]);
+                if (startA === null || endA === null || endA <= startA) return;
+
+                const isOverlapping = jobs.some(jobB => {
+                    if (jobA.id === jobB.id) return false;
+                    const startB = timeToMinutes(jobB.data[isUnassigned ? columnIndices.work : columnIndices.start]);
+                    const endB = isUnassigned ? startB + 120 : timeToMinutes(jobB.data[columnIndices.end]);
+                    if (startB === null || endB === null || endB <= startB) return false;
+                    return startA < endB && endA > startB;
+                });
 
                 const block = document.createElement('div');
                 block.className = 'schedule-block';
                 if (isUnassigned) block.classList.add('unassigned-block');
-                block.dataset.id = job.id;
+                if (isOverlapping && !isUnassigned) block.classList.add('overlapping-block');
+                block.dataset.id = jobA.id;
                 
-                const seqNo = job.data[columnIndices.seq] || '';
-                const workPlace = job.data[columnIndices.workPlace] || '';
+                const seqNo = jobA.data[columnIndices.seq] || '';
+                const workPlace = jobA.data[columnIndices.workPlace] || '';
                 block.innerHTML = `<span class="font-semibold">${seqNo}</span><span class="text-gray-700">${workPlace}</span>`;
                 
-                const clippedStart = Math.max(start, viewStartMinutes);
-                const clippedEnd = Math.min(end, SCHEDULE_END_HOUR * 60);
+                const clippedStart = Math.max(startA, viewStartMinutes);
+                const clippedEnd = Math.min(endA, SCHEDULE_END_HOUR * 60);
                 const left = ((clippedStart - viewStartMinutes) / viewTotalMinutes) * 100;
                 const width = ((clippedEnd - clippedStart) / viewTotalMinutes) * 100;
 
@@ -509,7 +524,6 @@
             const dropTarget = document.elementFromPoint(e.clientX, e.clientY)?.closest('.driver-lane');
             const targetDriverName = dropTarget?.dataset.driverName;
             
-            // Case 1: Dropped on a valid driver lane (not unassigned)
             if (targetDriverName && targetDriverName !== '未割当') {
                 const driverInfo = driverData.find(d => d.driver_name === targetDriverName);
                 if (driverInfo) {
@@ -520,13 +534,11 @@
                     renderAll();
                 }
             } 
-            // Case 2: Block was NOT unassigned and was just moved/resized within its lane
             else if (!block.classList.contains('unassigned-block')) {
                 targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
                 targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
                 renderAll();
             } 
-            // Case 3: Unassigned block was dropped somewhere else, just snap it back
             else {
                 renderSchedule();
             }
