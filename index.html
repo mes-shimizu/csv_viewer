@@ -118,7 +118,7 @@
                 <!-- 表示切替 -->
                 <div class="flex justify-center border border-gray-200 rounded-lg p-1 w-full">
                     <button id="viewTableBtn" class="px-4 py-2 text-sm font-medium rounded-md bg-blue-100 text-blue-700 w-1/2">テーブル</button>
-                    <button id="viewScheduleBtn" class="px-4 py-2 text-sm font-medium rounded-md w/1/2">スケジュール</button>
+                    <button id="viewScheduleBtn" class="px-4 py-2 text-sm font-medium rounded-md w-1/2">スケジュール</button>
                 </div>
                 <!-- 保存 -->
                  <div class="flex flex-col items-center">
@@ -428,8 +428,8 @@
                 block.dataset.id = job.id;
                 
                 const seqNo = job.data[columnIndices.seq] || '';
-                const containerNo = job.data[columnIndices.container] || '';
-                block.innerHTML = `<span class="font-semibold">${seqNo}</span><span class="text-gray-700">${containerNo}</span>`;
+                const workPlace = job.data[columnIndices.workPlace] || '';
+                block.innerHTML = `<span class="font-semibold">${seqNo}</span><span class="text-gray-700">${workPlace}</span>`;
                 
                 const clippedStart = Math.max(start, viewStartMinutes);
                 const clippedEnd = Math.min(end, SCHEDULE_END_HOUR * 60);
