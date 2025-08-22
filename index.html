@@ -283,7 +283,7 @@
                     if (header === '積み置き') {
                         const timeStr = rowObj.data[columnIndices.start] || '';
                         const hour = parseInt(timeStr.split(':')[0], 10);
-                        newRow.push(!isNaN(hour) && hour >= 11 ? 'TRUE' : 'FALSE');
+                        newRow.push(!isNaN(hour) && hour < 11 ? 'TRUE' : 'FALSE');
                     } else {
                         const key = headerKeyMap[header];
                         const dataIndex = columnIndices[key];
@@ -350,7 +350,7 @@
                         checkbox.type = 'checkbox';
                         const timeStr = rowObj.data[columnIndices.start] || '';
                         const hour = parseInt(timeStr.split(':')[0], 10);
-                        if (!isNaN(hour) && hour >= 11) checkbox.checked = true;
+                        if (!isNaN(hour) && hour < 11) checkbox.checked = true;
                         td.appendChild(checkbox);
                     } else {
                         const key = headerKeyMap[header];
