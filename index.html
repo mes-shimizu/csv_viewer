@@ -506,24 +506,31 @@
             const targetRow = planData.find(d => d.id === parseInt(block.dataset.id));
             if (!targetRow) { activeInteraction = null; return; }
 
-            // Check if dropping on a driver lane
             const dropTarget = document.elementFromPoint(e.clientX, e.clientY)?.closest('.driver-lane');
             const targetDriverName = dropTarget?.dataset.driverName;
             
-            if (block.classList.contains('unassigned-block') && targetDriverName && targetDriverName !== '未割当') {
+            // Case 1: Dropped on a valid driver lane (not unassigned)
+            if (targetDriverName && targetDriverName !== '未割当') {
                 const driverInfo = driverData.find(d => d.driver_name === targetDriverName);
                 if (driverInfo) {
                     targetRow.data[columnIndices.driver] = driverInfo.driver_name;
                     targetRow.data[columnIndices.headId] = driverInfo.head_id;
                     targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
                     targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
-                    renderAll(); // Re-render everything to reflect the assignment
+                    renderAll();
                 }
-            } else { // Regular move/resize
+            } 
+            // Case 2: Block was NOT unassigned and was just moved/resized within its lane
+            else if (!block.classList.contains('unassigned-block')) {
                 targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
                 targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
-                renderAll(); // Use renderAll to ensure table checkbox is also updated
+                renderAll();
+            } 
+            // Case 3: Unassigned block was dropped somewhere else, just snap it back
+            else {
+                renderSchedule();
             }
+            
             activeInteraction = null;
         });
     </script>
