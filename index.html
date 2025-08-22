@@ -12,20 +12,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
-        #csvFileInput { display: none; }
+        .hidden-file-input { display: none; }
         [contenteditable="true"]:focus { outline-color: #3b82f6; background-color: #eff6ff; }
         
         /* スケジュールビューのスタイル */
         .schedule-grid {
             display: grid;
-            /* 1列目(ドライバー名) + 表示時間分の列 */
             grid-template-columns: 120px repeat(15, 1fr); /* 5:00-20:00の15時間 */
             overflow-x: auto;
         }
         .timeline-header {
             grid-column: 2 / -1;
             display: grid;
-            grid-template-columns: repeat(15, 1fr); /* 15時間分 */
+            grid-template-columns: repeat(15, 1fr);
             text-align: center;
             font-size: 12px;
             color: #6b7280;
@@ -37,10 +36,10 @@
         .driver-lane {
             grid-column: 1 / -1;
             display: grid;
-            grid-template-columns: 120px repeat(15, 1fr); /* 15時間分 */
+            grid-template-columns: 120px repeat(15, 1fr);
             border-bottom: 1px solid #e5e7eb;
             position: relative;
-            min-height: 5rem; /* 行の高さをさらに広げる */
+            min-height: 5rem;
         }
         .driver-name {
             grid-column: 1 / 2;
@@ -59,14 +58,14 @@
             grid-column: 2 / -1;
             position: relative;
             background-image: linear-gradient(to right, #e5e7eb 1px, transparent 1px);
-            background-size: calc(100% / 15) 100%; /* 15時間分 */
+            background-size: calc(100% / 15) 100%;
         }
         .schedule-block {
             position: absolute;
-            top: 5px; /* 上下のマージンを調整 */
-            height: calc(100% - 10px); /* ブロックの高さを大きくする */
-            background-color: #fef08a; /* yellow-200 */
-            border: 1px solid #facc15; /* yellow-400 */
+            top: 5px;
+            height: calc(100% - 10px);
+            background-color: #fef08a;
+            border: 1px solid #facc15;
             border-radius: 4px;
             cursor: move;
             display: flex;
@@ -74,9 +73,8 @@
             align-items: center;
             justify-content: center;
             font-size: 12px;
-            /* overflow: hidden と text-overflow: ellipsis を削除してテキストが表示されるようにする */
             padding: 0 5px;
-            line-height: 1.3; /* 行間を調整 */
+            line-height: 1.3;
         }
         .resize-handle {
             position: absolute;
@@ -95,32 +93,38 @@
         
         <header class="text-center mb-8">
             <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">配送スケジュールプランナー</h1>
-            <p class="mt-2 text-gray-600">CSVを読み込み、テーブルまたはスケジュール表で配送予定を編集します。</p>
+            <p class="mt-2 text-gray-600">ドライバーリストと配車計画を読み込み、スケジュールを編集します。</p>
         </header>
 
         <!-- 操作セクション -->
         <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6 mb-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-                <!-- ファイル選択 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+                <!-- ファイル選択（ドライバー） -->
                 <div class="flex flex-col items-center">
-                    <label for="csvFileInput" class="cursor-pointer bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition w-full text-center">ファイルを選択</label>
-                    <select id="encodingSelector" class="mt-2 rounded-md border-gray-300 shadow-sm w-full">
-                        <option value="UTF-8">UTF-8</option>
-                        <option value="Shift_JIS" selected>Shift_JIS</option>
-                    </select>
+                    <label for="driverFileInput" class="cursor-pointer bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition w-full text-center">1. ドライバーリスト読込</label>
+                    <input type="file" id="driverFileInput" class="hidden-file-input" accept=".csv">
+                    <p id="driverFileName" class="mt-2 text-xs text-gray-500">未選択</p>
+                </div>
+                <!-- ファイル選択（配車計画） -->
+                <div class="flex flex-col items-center">
+                    <label for="planFileInput" class="cursor-pointer bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition w-full text-center">2. 配車計画読込</label>
+                    <input type="file" id="planFileInput" class="hidden-file-input" accept=".csv">
+                    <p id="planFileName" class="mt-2 text-xs text-gray-500">未選択</p>
                 </div>
                 <!-- 表示切替 -->
-                <div class="flex justify-center border border-gray-200 rounded-lg p-1">
+                <div class="flex justify-center border border-gray-200 rounded-lg p-1 w-full">
                     <button id="viewTableBtn" class="px-4 py-2 text-sm font-medium rounded-md bg-blue-100 text-blue-700 w-1/2">テーブル</button>
                     <button id="viewScheduleBtn" class="px-4 py-2 text-sm font-medium rounded-md w-1/2">スケジュール</button>
                 </div>
                 <!-- 保存 -->
-                <div class="flex flex-col items-center">
+                 <div class="flex flex-col items-center">
                     <button id="saveButton" disabled class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition w-full disabled:bg-gray-400">CSVを保存</button>
+                    <select id="encodingSelector" class="mt-2 rounded-md border-gray-300 shadow-sm w-full text-xs">
+                        <option value="UTF-8">文字コード: UTF-8</option>
+                        <option value="Shift_JIS" selected>文字コード: Shift_JIS</option>
+                    </select>
                 </div>
             </div>
-            <input type="file" id="csvFileInput" accept=".csv">
-            <p id="fileName" class="mt-4 text-sm text-gray-500 text-center">ファイルが選択されていません</p>
         </div>
 
         <!-- テーブル表示セクション -->
@@ -141,13 +145,14 @@
                 <div id="scheduleBody" style="grid-column: 1 / -1; display: contents;"></div>
             </div>
         </div>
-
     </div>
 
     <script>
         // DOM要素
-        const csvFileInput = document.getElementById('csvFileInput');
-        const fileNameDisplay = document.getElementById('fileName');
+        const driverFileInput = document.getElementById('driverFileInput');
+        const planFileInput = document.getElementById('planFileInput');
+        const driverFileNameDisplay = document.getElementById('driverFileName');
+        const planFileNameDisplay = document.getElementById('planFileName');
         const encodingSelector = document.getElementById('encodingSelector');
         const saveButton = document.getElementById('saveButton');
         const viewTableBtn = document.getElementById('viewTableBtn');
@@ -156,41 +161,46 @@
         const scheduleView = document.getElementById('scheduleView');
 
         // アプリケーションの状態
-        let originalFileName = 'data.csv';
-        let headers = [];
-        let csvData = []; // { data: string[], id: number }[]
-        let columnIndices = {}; // CSVの列インデックスを保持
+        let originalPlanFileName = 'plan.csv';
+        let planHeaders = [];
+        let planData = [];
+        let driverData = []; // { driver_name: string, head_id: string }[]
+        let columnIndices = {};
         
-        // スケジュール表示時間の設定
         const SCHEDULE_START_HOUR = 5;
         const SCHEDULE_END_HOUR = 20;
-        const SCHEDULE_DURATION_HOURS = SCHEDULE_END_HOUR - SCHEDULE_START_HOUR;
-
 
         // --- イベントリスナー ---
-        csvFileInput.addEventListener('change', handleFileSelect);
+        driverFileInput.addEventListener('change', (e) => handleFileSelect(e, 'driver'));
+        planFileInput.addEventListener('change', (e) => handleFileSelect(e, 'plan'));
         saveButton.addEventListener('click', handleSave);
         viewTableBtn.addEventListener('click', () => switchView('table'));
         viewScheduleBtn.addEventListener('click', () => switchView('schedule'));
 
-        function handleFileSelect(event) {
+        function handleFileSelect(event, type) {
             const file = event.target.files[0];
             if (!file) return;
-            originalFileName = file.name;
-            fileNameDisplay.textContent = `編集中: ${file.name}`;
+
             const reader = new FileReader();
             reader.onload = (e) => {
-                parseCSV(e.target.result);
-                findColumnIndices();
+                if (type === 'driver') {
+                    driverFileNameDisplay.textContent = file.name;
+                    parseDriverCSV(e.target.result);
+                } else if (type === 'plan') {
+                    originalPlanFileName = file.name;
+                    planFileNameDisplay.textContent = file.name;
+                    parsePlanCSV(e.target.result);
+                    findColumnIndices();
+                }
                 renderAll();
-                saveButton.disabled = false;
+                if(planData.length > 0) saveButton.disabled = false;
             };
             reader.readAsText(file, encodingSelector.value);
         }
 
         function handleSave() {
             const csvContent = generateCSV();
-            downloadCSV(csvContent, `edited_${originalFileName}`);
+            downloadCSV(csvContent, `edited_${originalPlanFileName}`);
         }
 
         function switchView(view) {
@@ -209,36 +219,60 @@
         }
 
         // --- データ処理 ---
-        function parseCSV(text) {
+        function parseDriverCSV(text) {
             const rows = text.trim().split(/\r?\n/);
-            headers = rows.length > 0 ? rows[0].split(',').map(h => h.trim()) : [];
-            csvData = rows.slice(1).map((row, index) => ({
+            const headers = rows.length > 0 ? rows[0].split(',').map(h => h.trim()) : [];
+            const driverNameIndex = headers.indexOf('driver_name');
+            const headIdIndex = headers.indexOf('head_id');
+            driverData = rows.slice(1).map(row => {
+                const cells = row.split(',').map(cell => cell.trim());
+                return {
+                    driver_name: cells[driverNameIndex] || '',
+                    head_id: cells[headIdIndex] || ''
+                };
+            });
+        }
+
+        function parsePlanCSV(text) {
+            const rows = text.trim().split(/\r?\n/);
+            planHeaders = rows.length > 0 ? rows[0].split(',').map(h => h.trim()) : [];
+            planData = rows.slice(1).map((row, index) => ({
                 id: index,
                 data: row.split(',').map(cell => cell.trim())
             }));
         }
 
         function findColumnIndices() {
-            const findIndex = (en, jp) => {
-                let index = headers.indexOf(en);
-                if (index === -1) index = headers.indexOf(jp);
-                return index;
+            const findIndex = (...keys) => {
+                for (const key of keys) {
+                    const index = planHeaders.indexOf(key);
+                    if (index !== -1) return index;
+                }
+                return -1;
             };
             columnIndices = {
-                driver: findIndex('driver_name', 'ドライバ名'),
-                headId: findIndex('head_id', 'ヘッドID'),
-                start: findIndex('departure_time', '出発日時'),
-                end: findIndex('arrival_time', '帰着日時') > -1 ? findIndex('arrival_time', '帰着日時') : findIndex('work_time', '作業日時'),
-                seq: findIndex('seq_no', 'シーケンス番号'),
-                container: findIndex('container_no', 'コンテナ番号')
+                order: findIndex('注文番号', 'order_no'),
+                seq: findIndex('シーケンス番号', 'seq_no'),
+                work: findIndex('作業時間', 'work_time'),
+                start: findIndex('出発時間', 'departure_time'),
+                end: findIndex('帰着時間', 'arrival_time'),
+                container: findIndex('コンテナ番号', 'container_no'),
+                headId: findIndex('ヘッドID', 'head_id'),
+                driver: findIndex('ドライバー', 'driver_name')
             };
         }
 
         function generateCSV() {
-            const headerRow = headers.map(h => `"${h}"`).join(',');
-            const dataRows = csvData.map(rowObj => 
-                rowObj.data.map(cell => `"${cell}"`).join(',')
-            );
+            const tableHeaders = ['注文番号', 'シーケンス番号', '作業時間', '出発時間', '帰着時間', 'コンテナ番号', 'ヘッドID', 'ドライバー', '積み置き'];
+            const headerRow = tableHeaders.map(h => `"${h}"`).join(',');
+            
+            const dataRows = planData.map(rowObj => {
+                const checkbox = document.querySelector(`tr[data-id='${rowObj.id}'] input[type='checkbox']`);
+                const preloaded = checkbox ? checkbox.checked : false;
+                const newRowData = [...rowObj.data, preloaded ? 'TRUE' : 'FALSE'];
+                return newRowData.map(cell => `"${cell}"`).join(',');
+            });
+
             return [headerRow, ...dataRows].join('\n');
         }
 
@@ -267,8 +301,9 @@
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
 
+            const displayHeaders = ['注文番号', 'シーケンス番号', '作業時間', '出発時間', '帰着時間', 'コンテナ番号', 'ヘッドID', 'ドライバー', '積み置き'];
             const headerRow = document.createElement('tr');
-            headers.forEach(headerText => {
+            displayHeaders.forEach(headerText => {
                 const th = document.createElement('th');
                 th.textContent = headerText;
                 th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
@@ -276,24 +311,30 @@
             });
             tableHead.appendChild(headerRow);
 
-            csvData.forEach(rowObj => {
+            planData.forEach(rowObj => {
                 const tr = document.createElement('tr');
                 tr.dataset.id = rowObj.id;
-                rowObj.data.forEach((cellData, colIndex) => {
+
+                displayHeaders.forEach(header => {
                     const td = document.createElement('td');
-                    td.textContent = cellData;
-                    td.dataset.col = colIndex;
-                    td.setAttribute('contenteditable', 'true');
                     td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-800';
-                    td.addEventListener('blur', (e) => {
-                        const id = parseInt(e.target.parentElement.dataset.id);
-                        const col = parseInt(e.target.dataset.col);
-                        const newData = e.target.textContent;
-                        const targetRow = csvData.find(d => d.id === id);
-                        if (targetRow && targetRow.data[col] !== newData) {
-                            targetRow.data[col] = newData;
+
+                    if (header === '積み置き') {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        const timeStr = rowObj.data[columnIndices.start] || '';
+                        const hour = parseInt(timeStr.split(':')[0], 10);
+                        if (!isNaN(hour) && hour >= 11) {
+                            checkbox.checked = true;
                         }
-                    });
+                        td.appendChild(checkbox);
+                    } else {
+                        const colIndex = Object.keys(columnIndices).find(key => displayHeaders[columnIndices[key]] === header);
+                        const dataIndex = columnIndices[Object.keys(columnIndices).find(key => planHeaders[columnIndices[key]] === header) || ''];
+                        td.textContent = rowObj.data[dataIndex] || '';
+                        td.setAttribute('contenteditable', 'true');
+                        td.dataset.col = dataIndex;
+                    }
                     tr.appendChild(td);
                 });
                 tableBody.appendChild(tr);
@@ -307,36 +348,20 @@
             scheduleBody.innerHTML = '';
 
             for (let i = SCHEDULE_START_HOUR; i < SCHEDULE_END_HOUR; i++) {
-                const hour = document.createElement('div');
-                hour.textContent = `${i}:00`;
-                timelineHeader.appendChild(hour);
+                timelineHeader.appendChild(Object.assign(document.createElement('div'), { textContent: `${i}:00` }));
             }
 
-            if (columnIndices.driver === -1) return;
+            if (driverData.length === 0) return;
 
-            const driversData = csvData.reduce((acc, row) => {
-                const driverName = row.data[columnIndices.driver];
-                if (!driverName) return acc;
-                if (!acc[driverName]) {
-                    acc[driverName] = {
-                        headId: columnIndices.headId !== -1 ? row.data[columnIndices.headId] : 'N/A',
-                        jobs: []
-                    };
-                }
-                acc[driverName].jobs.push(row);
-                return acc;
-            }, {});
-
-            const drivers = Object.keys(driversData);
-
-            drivers.forEach((driver, i) => {
+            scheduleBody.innerHTML = '';
+            driverData.forEach((driverInfo, i) => {
                 const lane = document.createElement('div');
                 lane.className = 'driver-lane';
                 lane.style.gridRow = `${i + 2}`;
 
                 const nameDiv = document.createElement('div');
                 nameDiv.className = 'driver-name';
-                nameDiv.innerHTML = `<span class="font-bold text-gray-800 text-sm">${driversData[driver].headId}</span><span class="text-gray-600 text-xs">${driver}</span>`;
+                nameDiv.innerHTML = `<span class="font-bold text-gray-800 text-sm">${driverInfo.head_id}</span><span class="text-gray-600 text-xs">${driverInfo.driver_name}</span>`;
                 lane.appendChild(nameDiv);
 
                 const scheduleDiv = document.createElement('div');
@@ -344,7 +369,9 @@
                 lane.appendChild(scheduleDiv);
 
                 scheduleBody.appendChild(lane);
-                renderBlocksForDriver(scheduleDiv, driversData[driver].jobs);
+
+                const driverJobs = planData.filter(job => job.data[columnIndices.driver] === driverInfo.driver_name);
+                renderBlocksForDriver(scheduleDiv, driverJobs);
             });
         }
 
@@ -352,55 +379,48 @@
             if (columnIndices.start === -1 || columnIndices.end === -1) return;
             
             const viewStartMinutes = SCHEDULE_START_HOUR * 60;
-            const viewEndMinutes = SCHEDULE_END_HOUR * 60;
             const viewTotalMinutes = (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR) * 60;
 
             jobs.forEach(job => {
                 const start = timeToMinutes(job.data[columnIndices.start]);
                 const end = timeToMinutes(job.data[columnIndices.end]);
-
-                if (start === null || end === null || end <= start || end < viewStartMinutes || start > viewEndMinutes) {
-                    return; // 時間が無効か、表示範囲外ならスキップ
-                }
+                if (start === null || end === null || end <= start) return;
 
                 const block = document.createElement('div');
                 block.className = 'schedule-block';
                 block.dataset.id = job.id;
                 
-                const seqNo = columnIndices.seq !== -1 ? job.data[columnIndices.seq] : '';
-                const containerNo = columnIndices.container !== -1 ? job.data[columnIndices.container] : '';
+                const seqNo = job.data[columnIndices.seq] || '';
+                const containerNo = job.data[columnIndices.container] || '';
                 block.innerHTML = `<span class="font-semibold">${seqNo}</span><span class="text-gray-700">${containerNo}</span>`;
                 
-                // 表示範囲に合わせて開始位置と幅を計算
                 const clippedStart = Math.max(start, viewStartMinutes);
-                const clippedEnd = Math.min(end, viewEndMinutes);
+                const clippedEnd = Math.min(end, SCHEDULE_END_HOUR * 60);
 
                 const left = ((clippedStart - viewStartMinutes) / viewTotalMinutes) * 100;
                 const width = ((clippedEnd - clippedStart) / viewTotalMinutes) * 100;
 
+                if (width <= 0) return;
+
                 block.style.left = `${left}%`;
                 block.style.width = `${width}%`;
 
-                const leftHandle = document.createElement('div');
-                leftHandle.className = 'resize-handle resize-handle-left';
-                block.appendChild(leftHandle);
-                const rightHandle = document.createElement('div');
-                rightHandle.className = 'resize-handle resize-handle-right';
-                block.appendChild(rightHandle);
+                ['left', 'right'].forEach(side => {
+                    const handle = document.createElement('div');
+                    handle.className = `resize-handle resize-handle-${side}`;
+                    block.appendChild(handle);
+                });
 
                 container.appendChild(block);
                 addBlockInteractions(block);
             });
         }
 
-        // --- 時刻変換ヘルパー ---
         function timeToMinutes(timeStr) {
             if (!timeStr) return null;
             const match = timeStr.match(/(\d{1,2}):(\d{2})/);
             if (!match) return null;
-            const hours = parseInt(match[1], 10);
-            const minutes = parseInt(match[2], 10);
-            return hours * 60 + minutes;
+            return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
         }
 
         function minutesToTime(totalMinutes) {
@@ -408,51 +428,34 @@
             const minutes = Math.round(totalMinutes % 60);
             return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
         }
-
-        // --- ブロックの操作 ---
+        
         let activeInteraction = null;
-
         function addBlockInteractions(block) {
             block.addEventListener('mousedown', (e) => {
                 e.preventDefault();
-                const container = block.parentElement;
-                const rect = container.getBoundingClientRect();
-                
-                if (e.target.classList.contains('resize-handle-left')) {
-                    activeInteraction = { type: 'resize-left', block, startX: e.clientX, startWidth: block.offsetWidth, startLeft: block.offsetLeft };
-                } else if (e.target.classList.contains('resize-handle-right')) {
-                    activeInteraction = { type: 'resize-right', block, startX: e.clientX, startWidth: block.offsetWidth };
-                } else {
-                    activeInteraction = { type: 'move', block, startX: e.clientX, startLeft: block.offsetLeft };
-                }
-                activeInteraction.containerRect = rect;
+                const type = e.target.classList.contains('resize-handle-left') ? 'resize-left' :
+                             e.target.classList.contains('resize-handle-right') ? 'resize-right' : 'move';
+                activeInteraction = { type, block, startX: e.clientX, startWidth: block.offsetWidth, startLeft: block.offsetLeft, containerRect: block.parentElement.getBoundingClientRect() };
             });
         }
 
         document.addEventListener('mousemove', (e) => {
             if (!activeInteraction) return;
             e.preventDefault();
-            
-            const { type, block, startX, startLeft, startWidth, containerRect } = activeInteraction;
+            const { type, block, startX, startLeft, startWidth } = activeInteraction;
             const dx = e.clientX - startX;
-
             if (type === 'move') {
-                const newLeft = Math.max(0, startLeft + dx);
-                block.style.left = `${newLeft}px`;
+                block.style.left = `${Math.max(0, startLeft + dx)}px`;
             } else if (type === 'resize-right') {
-                const newWidth = Math.max(10, startWidth + dx);
-                block.style.width = `${newWidth}px`;
+                block.style.width = `${Math.max(10, startWidth + dx)}px`;
             } else if (type === 'resize-left') {
-                const newWidth = Math.max(10, startWidth - dx);
-                const newLeft = Math.max(0, startLeft + dx);
-                block.style.width = `${newWidth}px`;
-                block.style.left = `${newLeft}px`;
+                block.style.width = `${Math.max(10, startWidth - dx)}px`;
+                block.style.left = `${Math.max(0, startLeft + dx)}px`;
             }
         });
 
-        document.addEventListener('mouseup', (e) => {
+        document.addEventListener('mouseup', () => {
             if (!activeInteraction) return;
-            
             const { block, containerRect } = activeInteraction;
             
             const newLeftPercent = (block.offsetLeft / containerRect.width) * 100;
@@ -461,22 +464,16 @@
             block.style.width = `${newWidthPercent}%`;
 
             const viewStartMinutes = SCHEDULE_START_HOUR * 60;
-            const viewTotalMinutes = SCHEDULE_DURATION_HOURS * 60;
-
+            const viewTotalMinutes = (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR) * 60;
             const startMinutes = (newLeftPercent / 100) * viewTotalMinutes + viewStartMinutes;
-            const durationMinutes = (newWidthPercent / 100) * viewTotalMinutes;
-            const endMinutes = startMinutes + durationMinutes;
+            const endMinutes = startMinutes + (newWidthPercent / 100) * viewTotalMinutes;
 
-            const id = parseInt(block.dataset.id);
-            const targetRow = csvData.find(d => d.id === id);
-            
+            const targetRow = planData.find(d => d.id === parseInt(block.dataset.id));
             if (targetRow) {
                 if(columnIndices.start > -1) targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
                 if(columnIndices.end > -1) targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
-                
                 renderTable();
             }
-
             activeInteraction = null;
         });
     </script>
