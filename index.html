@@ -253,12 +253,12 @@
             columnIndices = {
                 order: findIndex('注文番号', 'order_no'),
                 seq: findIndex('シーケンス番号', 'seq_no'),
-                work: findIndex('作業時間', 'work_time'),
-                start: findIndex('出発時間', 'departure_time'),
-                end: findIndex('帰着時間', 'arrival_time'),
+                work: findIndex('作業時間', 'work_time', '作業日時'),
+                start: findIndex('出発時間', 'departure_time', '出発日時'),
+                end: findIndex('帰着時間', 'arrival_time', '帰着日時'),
                 container: findIndex('コンテナ番号', 'container_no'),
                 headId: findIndex('ヘッドID', 'head_id'),
-                driver: findIndex('ドライバー', 'driver_name')
+                driver: findIndex('ドライバー', 'driver_name', 'ドライバ名')
             };
         }
 
