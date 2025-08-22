@@ -128,7 +128,7 @@
                 </div>
                 <!-- 保存 -->
                  <div class="flex flex-col items-center">
-                    <button id="saveButton" disabled class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition w-full disabled:bg-gray-400">サーバへアップロード & CSVを保存</button>
+                    <button id="saveButton" disabled class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition w-full disabled:bg-gray-400">CSVを保存</button>
                     <select id="encodingSelector" class="mt-2 rounded-md border-gray-300 shadow-sm w-full text-xs">
                         <option value="UTF-8">文字コード: UTF-8</option>
                         <option value="Shift_JIS" selected>文字コード: Shift_JIS</option>
@@ -474,8 +474,9 @@
         }
 
         function minutesToTime(totalMinutes) {
-            const hours = Math.floor(totalMinutes / 60) % 24;
-            const minutes = Math.round(totalMinutes % 60);
+            const roundedTotalMinutes = Math.round(totalMinutes);
+            const hours = Math.floor(roundedTotalMinutes / 60) % 24;
+            const minutes = roundedTotalMinutes % 60;
             return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
         }
         
