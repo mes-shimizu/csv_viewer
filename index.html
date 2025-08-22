@@ -266,11 +266,31 @@
             const tableHeaders = ['注文番号', 'シーケンス番号', '作業時間', '出発時間', '帰着時間', 'コンテナ番号', 'ヘッドID', 'ドライバー', '積み置き'];
             const headerRow = tableHeaders.map(h => `"${h}"`).join(',');
             
+            const headerKeyMap = {
+                '注文番号': 'order',
+                'シーケンス番号': 'seq',
+                '作業時間': 'work',
+                '出発時間': 'start',
+                '帰着時間': 'end',
+                'コンテナ番号': 'container',
+                'ヘッドID': 'headId',
+                'ドライバー': 'driver'
+            };
+
             const dataRows = planData.map(rowObj => {
-                const checkbox = document.querySelector(`tr[data-id='${rowObj.id}'] input[type='checkbox']`);
-                const preloaded = checkbox ? checkbox.checked : false;
-                const newRowData = [...rowObj.data, preloaded ? 'TRUE' : 'FALSE'];
-                return newRowData.map(cell => `"${cell}"`).join(',');
+                const newRow = [];
+                tableHeaders.forEach(header => {
+                    if (header === '積み置き') {
+                        const checkbox = document.querySelector(`tr[data-id='${rowObj.id}'] input[type='checkbox']`);
+                        const preloaded = checkbox ? checkbox.checked : false;
+                        newRow.push(preloaded ? 'TRUE' : 'FALSE');
+                    } else {
+                        const key = headerKeyMap[header];
+                        const dataIndex = columnIndices[key];
+                        newRow.push((dataIndex > -1 && rowObj.data[dataIndex]) ? rowObj.data[dataIndex] : '');
+                    }
+                });
+                return newRow.map(cell => `"${cell}"`).join(',');
             });
 
             return [headerRow, ...dataRows].join('\n');
@@ -311,6 +331,17 @@
             });
             tableHead.appendChild(headerRow);
 
+            const headerKeyMap = {
+                '注文番号': 'order',
+                'シーケンス番号': 'seq',
+                '作業時間': 'work',
+                '出発時間': 'start',
+                '帰着時間': 'end',
+                'コンテナ番号': 'container',
+                'ヘッドID': 'headId',
+                'ドライバー': 'driver'
+            };
+
             planData.forEach(rowObj => {
                 const tr = document.createElement('tr');
                 tr.dataset.id = rowObj.id;
@@ -329,11 +360,16 @@
                         }
                         td.appendChild(checkbox);
                     } else {
-                        const colIndex = Object.keys(columnIndices).find(key => displayHeaders[columnIndices[key]] === header);
-                        const dataIndex = columnIndices[Object.keys(columnIndices).find(key => planHeaders[columnIndices[key]] === header) || ''];
-                        td.textContent = rowObj.data[dataIndex] || '';
-                        td.setAttribute('contenteditable', 'true');
-                        td.dataset.col = dataIndex;
+                        const key = headerKeyMap[header];
+                        const dataIndex = columnIndices[key];
+
+                        if (dataIndex !== undefined && dataIndex > -1) {
+                            td.textContent = rowObj.data[dataIndex] || '';
+                            td.setAttribute('contenteditable', 'true');
+                            td.dataset.col = dataIndex;
+                        } else {
+                            td.textContent = ''; // Header not found in source CSV
+                        }
                     }
                     tr.appendChild(td);
                 });
