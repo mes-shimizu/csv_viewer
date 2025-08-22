@@ -522,7 +522,7 @@
             } else { // Regular move/resize
                 targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
                 targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
-                renderTable();
+                renderAll(); // Use renderAll to ensure table checkbox is also updated
             }
             activeInteraction = null;
         });
