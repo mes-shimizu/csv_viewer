@@ -76,6 +76,10 @@
             padding: 0 5px;
             line-height: 1.3;
         }
+        .unassigned-block {
+             background-color: #d1d5db; /* gray-300 */
+             border-color: #9ca3af; /* gray-400 */
+        }
         .resize-handle {
             position: absolute;
             top: 0;
@@ -114,7 +118,7 @@
                 <!-- 表示切替 -->
                 <div class="flex justify-center border border-gray-200 rounded-lg p-1 w-full">
                     <button id="viewTableBtn" class="px-4 py-2 text-sm font-medium rounded-md bg-blue-100 text-blue-700 w-1/2">テーブル</button>
-                    <button id="viewScheduleBtn" class="px-4 py-2 text-sm font-medium rounded-md w-1/2">スケジュール</button>
+                    <button id="viewScheduleBtn" class="px-4 py-2 text-sm font-medium rounded-md w/1/2">スケジュール</button>
                 </div>
                 <!-- 保存 -->
                  <div class="flex flex-col items-center">
@@ -220,7 +224,7 @@
 
         // --- データ処理 ---
         function parseDriverCSV(text) {
-            const rows = text.trim().split(/\r?\n/);
+            const rows = text.trim().split(/\r?\n/).filter(row => row);
             const headers = rows.length > 0 ? rows[0].split(',').map(h => h.trim()) : [];
             const driverNameIndex = headers.indexOf('driver_name');
             const headIdIndex = headers.indexOf('head_id');
@@ -234,7 +238,7 @@
         }
 
         function parsePlanCSV(text) {
-            const rows = text.trim().split(/\r?\n/);
+            const rows = text.trim().split(/\r?\n/).filter(row => row);
             planHeaders = rows.length > 0 ? rows[0].split(',').map(h => h.trim()) : [];
             planData = rows.slice(1).map((row, index) => ({
                 id: index,
@@ -258,32 +262,28 @@
                 end: findIndex('帰着時間', 'arrival_time', '帰着日時'),
                 container: findIndex('コンテナ番号', 'container_no'),
                 headId: findIndex('ヘッドID', 'head_id'),
-                driver: findIndex('ドライバー', 'driver_name', 'ドライバ名')
+                driver: findIndex('ドライバー', 'driver_name', 'ドライバ名'),
+                workPlace: findIndex('作業場所', 'work_place')
             };
         }
 
         function generateCSV() {
-            const tableHeaders = ['注文番号', 'シーケンス番号', '作業時間', '出発時間', '帰着時間', 'コンテナ番号', 'ヘッドID', 'ドライバー', '積み置き'];
+            const tableHeaders = ['注文番号', 'シーケンス番号', '作業時間', '出発時間', '帰着時間', 'コンテナ番号', 'ヘッドID', 'ドライバー', '作業場所', '積み置き'];
             const headerRow = tableHeaders.map(h => `"${h}"`).join(',');
             
             const headerKeyMap = {
-                '注文番号': 'order',
-                'シーケンス番号': 'seq',
-                '作業時間': 'work',
-                '出発時間': 'start',
-                '帰着時間': 'end',
-                'コンテナ番号': 'container',
-                'ヘッドID': 'headId',
-                'ドライバー': 'driver'
+                '注文番号': 'order', 'シーケンス番号': 'seq', '作業時間': 'work',
+                '出発時間': 'start', '帰着時間': 'end', 'コンテナ番号': 'container',
+                'ヘッドID': 'headId', 'ドライバー': 'driver', '作業場所': 'workPlace'
             };
 
             const dataRows = planData.map(rowObj => {
                 const newRow = [];
                 tableHeaders.forEach(header => {
                     if (header === '積み置き') {
-                        const checkbox = document.querySelector(`tr[data-id='${rowObj.id}'] input[type='checkbox']`);
-                        const preloaded = checkbox ? checkbox.checked : false;
-                        newRow.push(preloaded ? 'TRUE' : 'FALSE');
+                        const timeStr = rowObj.data[columnIndices.start] || '';
+                        const hour = parseInt(timeStr.split(':')[0], 10);
+                        newRow.push(!isNaN(hour) && hour >= 11 ? 'TRUE' : 'FALSE');
                     } else {
                         const key = headerKeyMap[header];
                         const dataIndex = columnIndices[key];
@@ -321,25 +321,20 @@
             tableHead.innerHTML = '';
             tableBody.innerHTML = '';
 
-            const displayHeaders = ['注文番号', 'シーケンス番号', '作業時間', '出発時間', '帰着時間', 'コンテナ番号', 'ヘッドID', 'ドライバー', '積み置き'];
+            const displayHeaders = ['注文番号', 'シーケンス番号', '作業時間', '出発時間', '帰着時間', 'コンテナ番号', 'ヘッドID', 'ドライバー', '作業場所', '積み置き'];
             const headerRow = document.createElement('tr');
             displayHeaders.forEach(headerText => {
-                const th = document.createElement('th');
-                th.textContent = headerText;
-                th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
-                headerRow.appendChild(th);
+                headerRow.appendChild(Object.assign(document.createElement('th'), { 
+                    textContent: headerText,
+                    className: 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
+                }));
             });
             tableHead.appendChild(headerRow);
 
             const headerKeyMap = {
-                '注文番号': 'order',
-                'シーケンス番号': 'seq',
-                '作業時間': 'work',
-                '出発時間': 'start',
-                '帰着時間': 'end',
-                'コンテナ番号': 'container',
-                'ヘッドID': 'headId',
-                'ドライバー': 'driver'
+                '注文番号': 'order', 'シーケンス番号': 'seq', '作業時間': 'work',
+                '出発時間': 'start', '帰着時間': 'end', 'コンテナ番号': 'container',
+                'ヘッドID': 'headId', 'ドライバー': 'driver', '作業場所': 'workPlace'
             };
 
             planData.forEach(rowObj => {
@@ -355,20 +350,17 @@
                         checkbox.type = 'checkbox';
                         const timeStr = rowObj.data[columnIndices.start] || '';
                         const hour = parseInt(timeStr.split(':')[0], 10);
-                        if (!isNaN(hour) && hour >= 11) {
-                            checkbox.checked = true;
-                        }
+                        if (!isNaN(hour) && hour >= 11) checkbox.checked = true;
                         td.appendChild(checkbox);
                     } else {
                         const key = headerKeyMap[header];
                         const dataIndex = columnIndices[key];
-
                         if (dataIndex !== undefined && dataIndex > -1) {
                             td.textContent = rowObj.data[dataIndex] || '';
                             td.setAttribute('contenteditable', 'true');
                             td.dataset.col = dataIndex;
                         } else {
-                            td.textContent = ''; // Header not found in source CSV
+                            td.textContent = '';
                         }
                     }
                     tr.appendChild(td);
@@ -387,43 +379,52 @@
                 timelineHeader.appendChild(Object.assign(document.createElement('div'), { textContent: `${i}:00` }));
             }
 
-            if (driverData.length === 0) return;
-
             scheduleBody.innerHTML = '';
+            
+            // 1. 未割当レーンを描画
+            const unassignedJobs = planData.filter(job => !job.data[columnIndices.driver] && !job.data[columnIndices.headId]);
+            const unassignedLane = createLane('未割当', { head_id: '', driver_name: '未割当' }, 0);
+            scheduleBody.appendChild(unassignedLane);
+            renderBlocksForDriver(unassignedLane.querySelector('.driver-schedule'), unassignedJobs, true);
+
+            // 2. ドライバーレーンを描画
             driverData.forEach((driverInfo, i) => {
-                const lane = document.createElement('div');
-                lane.className = 'driver-lane';
-                lane.style.gridRow = `${i + 2}`;
-
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'driver-name';
-                nameDiv.innerHTML = `<span class="font-bold text-gray-800 text-sm">${driverInfo.head_id}</span><span class="text-gray-600 text-xs">${driverInfo.driver_name}</span>`;
-                lane.appendChild(nameDiv);
-
-                const scheduleDiv = document.createElement('div');
-                scheduleDiv.className = 'driver-schedule';
-                lane.appendChild(scheduleDiv);
-
+                const lane = createLane(driverInfo.driver_name, driverInfo, i + 1);
                 scheduleBody.appendChild(lane);
-
                 const driverJobs = planData.filter(job => job.data[columnIndices.driver] === driverInfo.driver_name);
-                renderBlocksForDriver(scheduleDiv, driverJobs);
+                renderBlocksForDriver(lane.querySelector('.driver-schedule'), driverJobs, false);
             });
         }
 
-        function renderBlocksForDriver(container, jobs) {
-            if (columnIndices.start === -1 || columnIndices.end === -1) return;
-            
+        function createLane(id, info, rowIndex) {
+            const lane = document.createElement('div');
+            lane.className = 'driver-lane';
+            lane.style.gridRow = `${rowIndex + 2}`;
+            lane.dataset.driverName = info.driver_name;
+
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'driver-name';
+            nameDiv.innerHTML = `<span class="font-bold text-gray-800 text-sm">${info.head_id}</span><span class="text-gray-600 text-xs">${info.driver_name}</span>`;
+            lane.appendChild(nameDiv);
+
+            const scheduleDiv = document.createElement('div');
+            scheduleDiv.className = 'driver-schedule';
+            lane.appendChild(scheduleDiv);
+            return lane;
+        }
+
+        function renderBlocksForDriver(container, jobs, isUnassigned) {
             const viewStartMinutes = SCHEDULE_START_HOUR * 60;
             const viewTotalMinutes = (SCHEDULE_END_HOUR - SCHEDULE_START_HOUR) * 60;
 
             jobs.forEach(job => {
-                const start = timeToMinutes(job.data[columnIndices.start]);
-                const end = timeToMinutes(job.data[columnIndices.end]);
+                const start = timeToMinutes(job.data[isUnassigned ? columnIndices.work : columnIndices.start]);
+                const end = isUnassigned ? start + 60 : timeToMinutes(job.data[columnIndices.end]);
                 if (start === null || end === null || end <= start) return;
 
                 const block = document.createElement('div');
                 block.className = 'schedule-block';
+                if (isUnassigned) block.classList.add('unassigned-block');
                 block.dataset.id = job.id;
                 
                 const seqNo = job.data[columnIndices.seq] || '';
@@ -432,12 +433,10 @@
                 
                 const clippedStart = Math.max(start, viewStartMinutes);
                 const clippedEnd = Math.min(end, SCHEDULE_END_HOUR * 60);
-
                 const left = ((clippedStart - viewStartMinutes) / viewTotalMinutes) * 100;
                 const width = ((clippedEnd - clippedStart) / viewTotalMinutes) * 100;
 
                 if (width <= 0) return;
-
                 block.style.left = `${left}%`;
                 block.style.width = `${width}%`;
 
@@ -490,7 +489,7 @@
             }
         });
 
-        document.addEventListener('mouseup', () => {
+        document.addEventListener('mouseup', (e) => {
             if (!activeInteraction) return;
             const { block, containerRect } = activeInteraction;
             
@@ -505,9 +504,24 @@
             const endMinutes = startMinutes + (newWidthPercent / 100) * viewTotalMinutes;
 
             const targetRow = planData.find(d => d.id === parseInt(block.dataset.id));
-            if (targetRow) {
-                if(columnIndices.start > -1) targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
-                if(columnIndices.end > -1) targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
+            if (!targetRow) { activeInteraction = null; return; }
+
+            // Check if dropping on a driver lane
+            const dropTarget = document.elementFromPoint(e.clientX, e.clientY)?.closest('.driver-lane');
+            const targetDriverName = dropTarget?.dataset.driverName;
+            
+            if (block.classList.contains('unassigned-block') && targetDriverName && targetDriverName !== '未割当') {
+                const driverInfo = driverData.find(d => d.driver_name === targetDriverName);
+                if (driverInfo) {
+                    targetRow.data[columnIndices.driver] = driverInfo.driver_name;
+                    targetRow.data[columnIndices.headId] = driverInfo.head_id;
+                    targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
+                    targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
+                    renderAll(); // Re-render everything to reflect the assignment
+                }
+            } else { // Regular move/resize
+                targetRow.data[columnIndices.start] = minutesToTime(startMinutes);
+                targetRow.data[columnIndices.end] = minutesToTime(endMinutes);
                 renderTable();
             }
             activeInteraction = null;
