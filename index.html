@@ -103,7 +103,7 @@
         
         <header class="text-center mb-8">
             <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">配送スケジュールプランナー</h1>
-            <p class="mt-2 text-gray-600">ドライバーリストと業務リストを読み込み、配車を計画します。</p>
+            <p class="mt-2 text-gray-600">ドライバーリストと業務リストを読み込み、スケジュールを編集します。</p>
         </header>
 
         <!-- 操作セクション -->
@@ -115,7 +115,7 @@
                     <input type="file" id="driverFileInput" class="hidden-file-input" accept=".csv">
                     <p id="driverFileName" class="mt-2 text-xs text-gray-500">未選択</p>
                 </div>
-                <!-- ファイル選択（配車計画） -->
+                <!-- ファイル選択（業務リスト） -->
                 <div class="flex flex-col items-center">
                     <label for="planFileInput" class="cursor-pointer bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition w-full text-center">2. 業務リスト読込</label>
                     <input type="file" id="planFileInput" class="hidden-file-input" accept=".csv">
@@ -442,9 +442,9 @@
                 if (isOverlapping && !isUnassigned) block.classList.add('overlapping-block');
                 block.dataset.id = jobA.id;
                 
-                const seqNo = jobA.data[columnIndices.seq] || '';
+                const workTime = jobA.data[columnIndices.work] || '';
                 const workPlace = jobA.data[columnIndices.workPlace] || '';
-                block.innerHTML = `<span class="font-semibold">${seqNo}</span><span class="text-gray-700">${workPlace}</span>`;
+                block.innerHTML = `<span class="font-semibold">${workTime}</span><span class="text-gray-700">${workPlace}</span>`;
                 
                 const clippedStart = Math.max(startA, viewStartMinutes);
                 const clippedEnd = Math.min(endA, SCHEDULE_END_HOUR * 60);
@@ -549,5 +549,3 @@
     </script>
 </body>
 </html>
-
-
