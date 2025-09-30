@@ -202,6 +202,7 @@
                     parsePlanCSV(e.target.result);
                     findColumnIndices();
                 }
+                autoAssignJobs();
                 renderAll();
                 if(planData.length > 0) saveButton.disabled = false;
             };
@@ -272,6 +273,41 @@
                 workPlace: findIndex('作業場所', 'work_place')
             };
         }
+        
+        // --- 自動割当 ---
+        function autoAssignJobs() {
+            if (driverData.length === 0 || planData.length === 0 || Object.keys(columnIndices).length === 0) return;
+
+            const jobsToAssign = planData.filter(job => !job.data[columnIndices.driver]);
+
+            jobsToAssign.forEach(job => {
+                const workTimeStr = job.data[columnIndices.work];
+                const jobStartMinutes = timeToMinutes(workTimeStr);
+                if (jobStartMinutes === null) return;
+                
+                const jobEndMinutes = jobStartMinutes + 120; // 2時間と仮定
+
+                for (const driver of driverData) {
+                    const driverJobs = planData.filter(p => p.data[columnIndices.driver] === driver.driver_name);
+                    
+                    const hasConflict = driverJobs.some(existingJob => {
+                        const existingStart = timeToMinutes(existingJob.data[columnIndices.start]);
+                        const existingEnd = timeToMinutes(existingJob.data[columnIndices.end]);
+                        if (existingStart === null || existingEnd === null) return false;
+                        return jobStartMinutes < existingEnd && jobEndMinutes > existingStart;
+                    });
+
+                    if (!hasConflict) {
+                        job.data[columnIndices.driver] = driver.driver_name;
+                        job.data[columnIndices.headId] = driver.head_id;
+                        job.data[columnIndices.start] = minutesToTime(jobStartMinutes);
+                        job.data[columnIndices.end] = minutesToTime(jobEndMinutes);
+                        return; 
+                    }
+                }
+            });
+        }
+
 
         function generateCSV() {
             const tableHeaders = ['注文番号', 'シーケンス番号', '作業時間', '出発時間', '帰着時間', 'コンテナ番号', 'ヘッドID', 'ドライバー', '作業場所', '積み置き'];
@@ -549,3 +585,4 @@
     </script>
 </body>
 </html>
+
