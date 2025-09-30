@@ -274,22 +274,36 @@
             };
         }
         
-        // --- 自動割当 ---
+        // --- 自動割当 (修正版) ---
         function autoAssignJobs() {
             if (driverData.length === 0 || planData.length === 0 || Object.keys(columnIndices).length === 0) return;
 
-            const jobsToAssign = planData.filter(job => !job.data[columnIndices.driver]);
+            // 作業時間順にソート
+            const jobsToAssign = planData
+                .filter(job => !job.data[columnIndices.driver])
+                .sort((a, b) => {
+                    const timeA = timeToMinutes(a.data[columnIndices.work]);
+                    const timeB = timeToMinutes(b.data[columnIndices.work]);
+                    if (timeA === null) return 1;
+                    if (timeB === null) return -1;
+                    return timeA - timeB;
+                });
 
             jobsToAssign.forEach(job => {
                 const workTimeStr = job.data[columnIndices.work];
                 const jobStartMinutes = timeToMinutes(workTimeStr);
                 if (jobStartMinutes === null) return;
                 
-                const jobEndMinutes = jobStartMinutes + 120; // 2時間と仮定
+                const jobEndMinutes = jobStartMinutes + 120; // 未割当業務は2時間と仮定
 
-                for (const driver of driverData) {
+                let bestDriver = null;
+                let minWorkload = Infinity;
+
+                // 最適なドライバー（総業務量が最も少ない）を探す
+                driverData.forEach(driver => {
                     const driverJobs = planData.filter(p => p.data[columnIndices.driver] === driver.driver_name);
                     
+                    // 時間の競合をチェック
                     const hasConflict = driverJobs.some(existingJob => {
                         const existingStart = timeToMinutes(existingJob.data[columnIndices.start]);
                         const existingEnd = timeToMinutes(existingJob.data[columnIndices.end]);
@@ -298,12 +312,30 @@
                     });
 
                     if (!hasConflict) {
-                        job.data[columnIndices.driver] = driver.driver_name;
-                        job.data[columnIndices.headId] = driver.head_id;
-                        job.data[columnIndices.start] = minutesToTime(jobStartMinutes);
-                        job.data[columnIndices.end] = minutesToTime(jobEndMinutes);
-                        return; 
+                        // 競合がない場合、現在の総業務量を計算
+                        const currentWorkload = driverJobs.reduce((total, currentJob) => {
+                            const start = timeToMinutes(currentJob.data[columnIndices.start]);
+                            const end = timeToMinutes(currentJob.data[columnIndices.end]);
+                            if (start !== null && end !== null && end > start) {
+                                return total + (end - start);
+                            }
+                            return total;
+                        }, 0);
+                        
+                        // このドライバーの業務量が現在最小であれば、候補とする
+                        if (currentWorkload < minWorkload) {
+                            minWorkload = currentWorkload;
+                            bestDriver = driver;
+                        }
                     }
+                });
+
+                // 見つかった最適なドライバーに業務を割り当て
+                if (bestDriver) {
+                    job.data[columnIndices.driver] = bestDriver.driver_name;
+                    job.data[columnIndices.headId] = bestDriver.head_id;
+                    job.data[columnIndices.start] = minutesToTime(jobStartMinutes);
+                    job.data[columnIndices.end] = minutesToTime(jobEndMinutes);
                 }
             });
         }
